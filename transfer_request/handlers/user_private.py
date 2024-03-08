@@ -11,8 +11,10 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 
 from filters.chat_types import ChatTypeFilter
 
-from kbds import reply
-from kbds.inline import get_callback_btns
+from transfer_request.utils.states import transferRequest
+from keyboards import reply
+from transfer_request.keyboards.inline import get_callback_btns
+from transfer_request.callbacks.callback_transfer import staff_post
 
 user_private_router = Router()
 user_private_router.message.filter(ChatTypeFilter(["private"]))
@@ -21,56 +23,12 @@ user_private_router.message.filter(ChatTypeFilter(["private"]))
 bot = Bot(token=os.getenv('TOKEN'), parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
-@user_private_router.message(CommandStart())
-async def start_cmd(message:Message, state: FSMContext):
-    # Получить информацию о члене чата (пользователе, отправившем сообщение)
-    chat_member = await bot.get_chat_member(message.chat.id, message.from_user.id)
-
-    # Вывести имя пользователя
-    await bot.send_message(message.chat.id, 
-            f"Добрый день, <b>{chat_member.user.first_name}</b>! Я виртуальный HR-помощник.\nВыберите тип обращения.",
-            reply_markup=reply.start_kb        
-            )
-    await state.clear()
  
 @user_private_router.message((F.text.lower() == "создать заявку"))
 async def menu_cmd(message: types.Message):
     await message.answer(
         "Выберите вид заявки.",
-        reply_markup=reply.start_kb2
-    )
-
-class transferRequest(StatesGroup):
-    name_staff = State()
-    post_staff = State()
-    division_staff = State()
-    is_staff = State()
-    goals_count = State()
-    goals_staff = State()
-    due_date_staff = State()
-    results_staff = State()
-    fio_changed = State()  
-    post_changed = State()
-    division_changed = State()
-    is_changed = State()
-    goals_changed = State()
-    goals_count_changed = State()
-    due_date_changed = State()
-    results_changed = State()
-    goal_number = State()
-
-
-
-@user_private_router.message(Command(commands=["cancel"]))
-@user_private_router.message(F.text.lower() == "отмена заявки")
-async def cmd_cancel(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer(
-        text="Действие отменено",
-        reply_markup=reply.start_kb
-    )
-    await message.answer(
-        text="Выберите тип обращения"
+        reply_markup=reply.request
     )
 
 
@@ -78,7 +36,7 @@ async def cmd_cancel(message: Message, state: FSMContext):
 async def transfer_cmd(message: types.Message, state:FSMContext):
     await message.answer(
         "Введите <b>ФИО сотрудника</b>",
-        reply_markup=reply.back_start
+        reply_markup=reply.cancel
     )
     await state.update_data(fio_changed=False)
     await state.set_state(transferRequest.name_staff)
@@ -95,7 +53,7 @@ async def cmd_post(message: Message, state: FSMContext):
     else:  
         await message.answer(
             "Введите <b>должность сотрудника</b>",
-            reply_markup=reply.back_start
+            reply_markup=reply.cancel
         )
         await state.update_data(post_changed=False)
         await state.set_state(transferRequest.post_staff)
@@ -112,7 +70,7 @@ async def cmd_division(message: Message, state: FSMContext):
     else: 
         await message.answer(
             "Введите <b>подразделение сотрудника</b>",
-              reply_markup=reply.back_start
+              reply_markup=reply.cancel
         )
         await state.update_data(division_changed=False)
         await state.set_state(transferRequest.division_staff)
@@ -128,7 +86,7 @@ async def cmd_is(message: Message, state: FSMContext):
     else: 
         await message.answer(
             "Введите <b>дату конца Испытательного Срока</b>",
-              reply_markup=reply.back_start
+              reply_markup=reply.cancel
         )
         await state.update_data(is_changed=False)
         await state.set_state(transferRequest.is_staff)
@@ -144,7 +102,7 @@ async def cmd_goals(message: Message, state: FSMContext):
     else:   
         await message.answer(
             "Введите <b>количество целей</b> на период Испытательного срока",
-            reply_markup=reply.back_start)
+            reply_markup=reply.cancel)
         await state.update_data(goals_count_changed=False)
         await state.set_state(transferRequest.goals_count)
 
@@ -165,7 +123,7 @@ async def cmd_goals_loop(message: Message, state: FSMContext):
         for i in range(goals_count):
             await message.answer(
                 f"Введите <b>цель {i + 1} на период Испытательного срока</b>",
-            reply_markup=reply.back_start
+            reply_markup=reply.cancel
             )
             await state.update_data(goals_changed=False)
             await state.set_state(transferRequest.goals_staff)
@@ -214,7 +172,7 @@ async def cmd_due(message: Message, state: FSMContext):
         # Запрос срока исполнения
         await message.answer(
             "Введите <b>срок исполнения</b>",
-            reply_markup=reply.back_start
+            reply_markup=reply.cancel
         )
         await state.update_data(due_date_changed = False)
 
@@ -253,7 +211,7 @@ async def cmd_results(message: Message, state: FSMContext):
         await state.set_state(transferRequest.results_staff)
         await message.answer(
             "Введите <b>ожидаемый результат</b>",
-            reply_markup=reply.back_start
+            reply_markup=reply.cancel
         )
         await state.update_data(results_changed=False)
 
@@ -312,176 +270,6 @@ async def cmd_results_loop(message: Message, state: FSMContext):
             await state.set_data(data)
             await message.answer(
                 f"Введите <b>цель {data['goals_staff_count'] + 1} на период Испытательного срока</b>",
-                reply_markup=reply.back_start
+                reply_markup=reply.cancel
             )
             await state.set_state(transferRequest.goals_staff)
-
-
-async def staff_post(message: types.Message, state: FSMContext):
-    user_data = await state.get_data()
-    name = user_data.get('name_staff')
-    post = user_data.get('post_staff')
-    division = user_data.get('division_staff')
-    is_s = user_data.get('is_staff')
-
-    data = await state.get_data()
-
-    goals_list = data.get("goals_list")
-    due_date_list = data.get("due_date_list")
-    results_list = data.get("results_list")
-    await message.answer(
-        text="Проверьте корректность введенных данных."
-    )
-    await message.answer(
-            f"<b>ФИО сотрудника:</b> {name}.\n"
-             f"<b>Должность:</b> {post}.\n"
-             f"<b>Подразделение: </b>{division}. \n"
-             f"<b>Дата конца Испытательного Срока:</b> {is_s}."         
-    )
-    if len(goals_list) == len(due_date_list) == len(results_list):
-        #Все списки имеют одинаковую длину
-        for i, goal in enumerate(goals_list):
-            due_date = due_date_list[i]
-            result = results_list[i]
-            if i == len(goals_list) - 1:
-                message_text = f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}"
-                await message.answer(message_text, 
-                    reply_markup=get_callback_btns(
-                    btns={
-                    'Данные верны': f'yes_application',
-                    'Изменить данные': f'no_application',
-                    }   
-                ))
-            else:
-                message_text = f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}"
-                await message.answer(message_text)
-    else:
-        await message.answer(
-            "Ошибка", reply_markup=reply.start_kb
-        )
-
-@user_private_router.callback_query(F.data.startswith("yes_application"))
-async def yes_app(callback:types.CallbackQuery):
-    await callback.message.delete_reply_markup()
-    await bot.send_message(callback.from_user.id, "Вы подтвердили правильность введенных данных.")
-    await callback.message.answer(
-        "Отправить заявку HR?",      
-        reply_markup=get_callback_btns(
-                btns={
-                    'Да': f'go_application',
-                    'Нет': f'stop_application',
-                }
-            ),    
-    )
-
-@user_private_router.callback_query(F.data.startswith("go_application"))
-async def go_app(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup() 
-    await callback.message.answer(
-        "Отправлено.", reply_markup=reply.start_kb
-    )
-    # Сброс состояния и сохранённых данных у пользователя
-    await state.clear()
-
-@user_private_router.callback_query(F.data.startswith("stop_application"))
-async def stop_app(callback: types.CallbackQuery):
-    await callback.message.delete_reply_markup() 
-    await callback.message.answer(
-        "Выберите тип обращения.", reply_markup=reply.start_kb
-    )
-
-@user_private_router.callback_query(F.data.startswith("no_application"))
-async def no_app(callback:types.CallbackQuery):
-    await callback.message.delete_reply_markup()
-    await callback.message.answer(
-        "Что необходимо изменить?", 
-        reply_markup=get_callback_btns(
-                btns={
-                    'ФИО сотрудника': f'fio_change',
-                    'Должность': f'post_change',
-                    'Подразделение': f'division_change',
-                    'Дата конца ИС': f'is_change',
-                    'Цели': f'goals_change',
-                }
-            ),    
-    )
-
- 
-@user_private_router.callback_query(F.data.startswith("fio_change"))
-async def fio_change(callback:types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await callback.message.answer(
-        "Введите исправленное <b>ФИО сотрудника</b>", 
-    )
-    await state.set_state(transferRequest.name_staff)
-    await state.update_data({'fio_changed': True})   
-
-@user_private_router.callback_query(F.data.startswith("post_change"))
-async def post_change(callback:types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await callback.message.answer(
-        "Введите исправленную <b>должность сотрудника</b>", 
-    )
-    await state.set_state(transferRequest.post_staff)
-    await state.update_data(post_changed=True)
-    
-@user_private_router.callback_query(F.data.startswith("division_change"))
-async def division_change(callback:types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await callback.message.answer(
-        "Введите исправленное <b>подразделение сотрудника</b>", 
-    )
-    await state.set_state(transferRequest.division_staff)
-    await state.update_data(division_changed=True)
-
-@user_private_router.callback_query(F.data.startswith("is_change"))
-async def is_change(callback:types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await callback.message.answer(
-        "Введите исправленную <b>дату конца ИС</b>", 
-    )
-    await state.set_state(transferRequest.is_staff)
-    await state.update_data(is_changed=True)
-
-
-@user_private_router.callback_query(F.data.startswith("goals_change"))
-async def goals_change(callback:types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    data = await state.get_data()
-
-    goals_list = data.get("goals_list")
-    await callback.message.answer(
-        "Выберите цель, которую необходимо исправить",  
-        reply_markup=get_callback_btns(
-        btns={
-            f"Цель {i + 1}": f"goal_{i}" for i in range(len(goals_list))
-        }
-        )
-    )
-   
-@user_private_router.callback_query(F.data.startswith("goal_"))
-async def goal_change(callback: types.CallbackQuery, state: FSMContext):
-    # Получение номера цели из данных обратного вызова
-    goal_number = int(callback.data.split("_")[1])
-
-    await callback.message.delete_reply_markup()
-
-    # Запрос новых данных цели у пользователя
-    await callback.message.answer(
-        f"Введите новую <b>цель {goal_number+1}:</b>"
-    )
-
-    # Переход в состояние ожидания ввода новой цели
-    await state.set_state(transferRequest.goals_staff)
-    await state.update_data({"goal_number": goal_number, "step": 1})
-    await state.update_data(goals_changed=True)
-
-
-
-
-@user_private_router.message((F.text.lower() == "заявка на перевод на другой формат работы"))
-async def transfer_to_remote(message: types.Message):
-    await message.answer(
-        "<i>Заявка на перевод на другой формат работы</i>", reply_markup=types.ReplyKeyboardRemove()
-    )
-
