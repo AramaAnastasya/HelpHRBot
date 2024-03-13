@@ -30,6 +30,13 @@ async def start_cmd(message:Message, state: FSMContext):
             )
     await state.set_state(FSMAdmin.phone)
 
+@user_private_router.message((F.text.lower() == "подать заявку"))
+async def menu_cmd(message: types.Message):
+    await message.answer(
+        "Выберите вид заявки.",
+        reply_markup=reply.request
+    )
+
 @user_private_router.message(F.text.lower() == "отменить заявку ❌")
 async def cmd_cancel(message: Message, state: FSMContext):
     await state.clear()

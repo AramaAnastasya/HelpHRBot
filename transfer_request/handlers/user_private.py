@@ -23,12 +23,6 @@ user_private_router.message.filter(ChatTypeFilter(["private"]))
 bot = Bot(token=os.getenv('TOKEN'), parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
-@user_private_router.message((F.text.lower() == "создать заявку"))
-async def menu_cmd(message: types.Message):
-    await message.answer(
-        "Выберите вид заявки.",
-        reply_markup=reply.request
-    )
 
 @user_private_router.message((F.text.lower() == "заявка на перевод"))
 async def transfer_cmd(message: types.Message, state:FSMContext):

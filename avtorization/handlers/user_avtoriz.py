@@ -32,7 +32,7 @@ async def cmd_is(message: types.Message, state: FSMContext):
             await state.clear()
             await message.reply(f"Вы успешно авторизованы! Ваш номер телефона: {message.contact.phone_number}, ваш ID: {chat_member.user.id}")
             await message.answer("Выберите тип обращения.", reply_markup=reply.main)
-    elif message.text == '+77777777777':
+    elif message.text == '123':
         await state.clear()
         await message.reply(f"Вы успешно авторизованы!! Ваш номер телефона: {message.text}, ваш ID: {chat_member.user.id}")
         await message.answer("Выберите тип обращения.", reply_markup=reply.main)

@@ -16,8 +16,11 @@ from transfer_request.callbacks import callback_transfer
 from task_ZP.handlers import user_agreement
 from task_ZP.callbacks import callback_task_ZP
 
-from general_form.handlers import quest, bot_msg
+from general_form.handlers import quest
 from general_form.callbacks import callback_data
+
+from different_format.handlers import user_diff_format
+from different_format.callbacks import callback_format
 
 ALLOWED_UPDATES = ['message, edited_message']
 
@@ -32,9 +35,10 @@ dp.include_routers(
         callback_transfer.user_private_router,
         quest.router,
         callback_data.router,
-        bot_msg.router,
         user_agreement.user_private_router,
-        callback_task_ZP.user_private_router
+        callback_task_ZP.user_private_router,
+        user_diff_format.router,
+        callback_format.router
     )
 
 async def main(): 
