@@ -56,7 +56,7 @@ async def staff_post(message: types.Message, state: FSMContext):
                     reply_markup=get_callback_btns(
                     btns={
                     'Данные верны': f'yes_application',
-                    'Изменить данные': f'no_application',
+                    'Изменить данные': f'no_application', 
                     }   
                 ))
             else:
@@ -87,7 +87,10 @@ async def yes_app(callback:types.CallbackQuery):
 async def go_app(callback: types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup() 
     await callback.message.answer(
-        "Отправлено.", reply_markup=reply.main
+        "Заявка успешно отправлена!"
+    )
+    await callback.message.answer(
+        "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main
     )
     # Сброс состояния и сохранённых данных у пользователя
     await state.clear()

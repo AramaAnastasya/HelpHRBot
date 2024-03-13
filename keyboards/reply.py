@@ -18,7 +18,7 @@ main = ReplyKeyboardMarkup(
 cancel = ReplyKeyboardMarkup( 
     keyboard=[
         [
-            KeyboardButton(text="Отменить заявку")
+            KeyboardButton(text="Отменить заявку ❌")
         ]
     ],
     resize_keyboard=True,
@@ -33,13 +33,23 @@ request = ReplyKeyboardMarkup(
             KeyboardButton(text="Общая форма")
         ],
         [
-            KeyboardButton(text="Заявка на согласование ЗП")
+            KeyboardButton(text="Заявка на согласование ЗП"),
+            KeyboardButton(text="Заявка на перевод на другой формат работы")
         ],
         [
-            KeyboardButton(text="Заявка на перевод другой формат работы")
+            KeyboardButton(text="Отменить заявку ❌")
         ]
     ],
     resize_keyboard=True,
     input_field_placeholder='Что Вас интересует?'
 
+)
+start_kb = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Отправить номер ☎️", request_contact=True)
+        ],
+    ],
+    resize_keyboard=True,
+    input_field_placeholder='Что Вас интересует?'
 )

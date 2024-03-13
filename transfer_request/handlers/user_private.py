@@ -23,14 +23,12 @@ user_private_router.message.filter(ChatTypeFilter(["private"]))
 bot = Bot(token=os.getenv('TOKEN'), parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
- 
 @user_private_router.message((F.text.lower() == "создать заявку"))
 async def menu_cmd(message: types.Message):
     await message.answer(
         "Выберите вид заявки.",
         reply_markup=reply.request
     )
-
 
 @user_private_router.message((F.text.lower() == "заявка на перевод"))
 async def transfer_cmd(message: types.Message, state:FSMContext):
@@ -111,7 +109,10 @@ async def cmd_goals_loop(message: Message, state: FSMContext):
     if not message.text.isdigit():
         await message.answer("Введите число.")
         return
-    
+    elif message.text == "0":
+        await message.answer("Количество целей не может быть равно нулю.")
+        return
+
     goals_count = int(message.text)
     await state.update_data(goals_count=message.text)
     user_data = await state.get_data()
