@@ -24,65 +24,6 @@ bot = Bot(token=os.getenv('TOKEN'), parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
 
-@user_private_router.message((F.text.lower() == "заявка на перевод"))
-async def transfer_cmd(message: types.Message, state:FSMContext):
-    await message.answer(
-        "Введите <b>ФИО сотрудника</b>",
-        reply_markup=reply.cancel
-    )
-    await state.update_data(fio_changed=False)
-    await state.set_state(transferRequest.name_staff)
-
-
-@user_private_router.message(transferRequest.name_staff)
-async def cmd_post(message: Message, state: FSMContext):
-    await state.update_data(name_staff=message.text)
-    data = await state.get_data()
-    fio_change = data.get('fio_changed')
-    if fio_change == True:  
-        await staff_post(message, state)
-        await state.update_data(fio_changed=False)
-    else:  
-        await message.answer(
-            "Введите <b>должность сотрудника</b>",
-            reply_markup=reply.cancel
-        )
-        await state.update_data(post_changed=False)
-        await state.set_state(transferRequest.post_staff)
-
-
-@user_private_router.message(transferRequest.post_staff)
-async def cmd_division(message: Message, state: FSMContext):
-    await state.update_data(post_staff=message.text)
-    user_data = await state.get_data()
-    post_change = user_data.get('post_changed')
-    if post_change == True:  
-        await staff_post(message, state)
-        await state.update_data(post_changed=False)
-    else: 
-        await message.answer(
-            "Введите <b>подразделение сотрудника</b>",
-              reply_markup=reply.cancel
-        )
-        await state.update_data(division_changed=False)
-        await state.set_state(transferRequest.division_staff)
-
-@user_private_router.message(transferRequest.division_staff)
-async def cmd_is(message: Message, state: FSMContext):
-    await state.update_data(division_staff=message.text)
-    user_data = await state.get_data()
-    division_change = user_data.get('division_changed')
-    if division_change == True: 
-        await staff_post(message, state)
-        await state.update_data(division_change=False)
-    else: 
-        await message.answer(
-            "Введите <b>дату конца Испытательного Срока</b>",
-              reply_markup=reply.cancel
-        )
-        await state.update_data(is_changed=False)
-        await state.set_state(transferRequest.is_staff)
-
 @user_private_router.message(transferRequest.is_staff)
 async def cmd_goals(message: Message, state: FSMContext):
     await state.update_data(is_staff=message.text)

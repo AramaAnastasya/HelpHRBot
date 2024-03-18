@@ -24,16 +24,6 @@ bot = Bot(token=os.getenv('TOKEN'), parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
 
-@user_private_router.message((F.text.lower() == "заявка на согласование зп"))
-async def transfer_cmd(message: types.Message, state:FSMContext):
-    await message.answer(
-        "Введите <b>действующую сумму</b>",
-        reply_markup=reply.cancel
-    )
-    await state.update_data(current_amount_changed=False)
-    await state.set_state(taskZP.current_amount)
-
-
 @user_private_router.message(taskZP.current_amount)
 async def cmd_post(message: Message, state: FSMContext):
     await state.update_data(current_amount=message.text)
@@ -61,7 +51,7 @@ async def cmd_division(message: Message, state: FSMContext):
         await state.update_data(proposed_amount_changed=False)
     else: 
         await message.answer(
-            "Введите <b>причины перевода</b>",
+            "Введите <b>причину перевода</b>",
               reply_markup=reply.cancel
         )
         await state.update_data(reasons_changed=False)

@@ -11,6 +11,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 
 from filters.chat_types import ChatTypeFilter
 
+from utils.states import Employee
 from transfer_request.utils.states import transferRequest
 from keyboards import reply
 from transfer_request.keyboards.inline import get_callback_btns
@@ -26,9 +27,9 @@ dp = Dispatcher()
 
 async def staff_post(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
-    name = user_data.get('name_staff')
-    post = user_data.get('post_staff')
-    division = user_data.get('division_staff')
+    name = user_data.get('search_name')
+    division = user_data.get('search_division')
+    post = user_data.get('search_post')
     is_s = user_data.get('is_staff')
 
     data = await state.get_data()
@@ -37,13 +38,10 @@ async def staff_post(message: types.Message, state: FSMContext):
     due_date_list = data.get("due_date_list")
     results_list = data.get("results_list")
     await message.answer(
-        text="Проверьте корректность введенных данных."
-    )
-    await message.answer(
-            f"<b>ФИО сотрудника:</b> {name}.\n"
-             f"<b>Должность:</b> {post}.\n"
-             f"<b>Подразделение: </b>{division}. \n"
-             f"<b>Дата конца Испытательного Срока:</b> {is_s}."         
+        "Ваша заявка на перевод:\n"
+        f"<b>Инициатор:</b> \n"
+        f"<b>Сотрудник:</b> {name}, {division}, {post}\n"
+        f"<b>Дата конца Испытательного Срока:</b> {is_s}."  
     )
     if len(goals_list) == len(due_date_list) == len(results_list):
         #Все списки имеют одинаковую длину
@@ -53,12 +51,16 @@ async def staff_post(message: types.Message, state: FSMContext):
             if i == len(goals_list) - 1:
                 message_text = f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}"
                 await message.answer(message_text, 
-                    reply_markup=get_callback_btns(
-                    btns={
-                    'Данные верны': f'yes_application',
-                    'Изменить данные': f'no_application', 
-                    }   
-                ))
+                )
+                await message.answer(
+                "Запрос введен верно?",
+                reply_markup=get_callback_btns(
+                btns={
+                'Данные верны': f'yes_application',
+                'Изменить данные': f'no_application',
+                }   
+        )
+    )
             else:
                 message_text = f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}"
                 await message.answer(message_text)
@@ -70,8 +72,6 @@ async def staff_post(message: types.Message, state: FSMContext):
 @user_private_router.callback_query(F.data.startswith("yes_application"))
 async def yes_app(callback:types.CallbackQuery):
     await callback.message.delete_reply_markup()
-    #await bot.answer_callback_query(callback.id, text="Вы нажали на кнопку!")
-    # Отправка сообщения, инсценсирующего нажатие кнопки reply
     await bot.send_message(callback.from_user.id, "Вы подтвердили правильность введенных данных.")
     await callback.message.answer(
         "Отправить заявку HR?",      
@@ -109,42 +109,15 @@ async def no_app(callback:types.CallbackQuery):
         "Что необходимо изменить?", 
         reply_markup=get_callback_btns(
                 btns={
-                    'ФИО сотрудника': f'fio_change',
-                    'Должность': f'post_change',
-                    'Подразделение': f'division_change',
+                    'ФИО сотрудника': f'search_name_change',
+                    'Подразделение': f'search_division_change',
+                    'Должность': f'search_post_change',
                     'Дата конца ИС': f'is_change',
                     'Цели': f'goals_change',
                 }
             ),    
     )
 
- 
-@user_private_router.callback_query(F.data.startswith("fio_change"))
-async def fio_change(callback:types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await callback.message.answer(
-        "Введите исправленное <b>ФИО сотрудника</b>", 
-    )
-    await state.set_state(transferRequest.name_staff)
-    await state.update_data({'fio_changed': True})   
-
-@user_private_router.callback_query(F.data.startswith("post_change"))
-async def post_change(callback:types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await callback.message.answer(
-        "Введите исправленную <b>должность сотрудника</b>", 
-    )
-    await state.set_state(transferRequest.post_staff)
-    await state.update_data(post_changed=True)
-    
-@user_private_router.callback_query(F.data.startswith("division_change"))
-async def division_change(callback:types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await callback.message.answer(
-        "Введите исправленное <b>подразделение сотрудника</b>", 
-    )
-    await state.set_state(transferRequest.division_staff)
-    await state.update_data(division_changed=True)
 
 @user_private_router.callback_query(F.data.startswith("is_change"))
 async def is_change(callback:types.CallbackQuery, state:FSMContext):

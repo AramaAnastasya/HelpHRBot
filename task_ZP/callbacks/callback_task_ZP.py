@@ -11,6 +11,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
 
 from filters.chat_types import ChatTypeFilter
 
+from utils.states import Employee
 from task_ZP.utils.states import taskZP
 from keyboards import reply
 from task_ZP.keyboards.inline import get_callback_btns
@@ -26,23 +27,29 @@ dp = Dispatcher()
 
 async def agreement_ZP(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
+    name = user_data.get('search_name')
+    division = user_data.get('search_division')
+    post = user_data.get('search_post')
     proposed = user_data.get('proposed_amount')
     current = user_data.get('current_amount')
     reasons = user_data.get('reasons')
 
     await message.answer(
-        text="Проверьте корректность введенных данных."
+        "Ваша заявка на согласование заработной платы:\n"
+        f"<b>Инициатор:</b> \n"
+        f"<b>Сотрудник:</b> {name}, {division}, {post}\n"
+        f"<b>Действующая сумма:</b> {current}.\n"
+        f"<b>Предлагаемая сумма:</b> {proposed}.\n"
+        f"<b>Причина перевода: </b>{reasons}.",
     )
     await message.answer(
-            f"<b>Действующая сумма:</b> {current}.\n"
-             f"<b>Предлагаемая сумма:</b> {proposed}.\n"
-             f"<b>Причины перевода: </b>{reasons}.",
-                reply_markup=get_callback_btns(
-                    btns={
-                    'Данные верны': f'yes_task',
-                    'Изменить данные': f'no_task',
-                    }   
-                )
+        "Запрос введен верно?",
+        reply_markup=get_callback_btns(
+            btns={
+            'Данные верны': f'yes_task',
+            'Изменить данные': f'no_task',
+            }   
+        )
     )
 
 @user_private_router.callback_query(F.data.startswith("yes_task"))
@@ -85,6 +92,9 @@ async def no_app(callback:types.CallbackQuery):
         "Что необходимо изменить?", 
         reply_markup=get_callback_btns(
                 btns={
+                    'ФИО сотрудника': f'search_name_change',
+                    'Подразделение': f'search_division_change',
+                    'Должность': f'search_post_change',
                     'Действующая сумма': f'current_amount_change',
                     'Предлагаемая сумма': f'proposed_amount_change',
                     'Причины перевода': f'reasons_change',
@@ -93,6 +103,7 @@ async def no_app(callback:types.CallbackQuery):
     )
 
  
+
 @user_private_router.callback_query(F.data.startswith("proposed_amount_change"))
 async def proposed_amount_change(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()

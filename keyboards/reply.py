@@ -53,3 +53,17 @@ start_kb = ReplyKeyboardMarkup(
     resize_keyboard=True,
     input_field_placeholder='Что Вас интересует?'
 )
+
+employee_search = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Поиск сотрудника"),
+            KeyboardButton(text="Ввести вручную"),
+        ],
+        [
+            KeyboardButton(text="Отменить заявку ❌"),
+        ]
+    ],
+    resize_keyboard=True,
+    input_field_placeholder='Что Вас интересует?'
+)

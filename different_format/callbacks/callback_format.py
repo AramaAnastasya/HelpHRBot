@@ -5,19 +5,9 @@ from aiogram.types import Message
 from different_format.keyboards.inline import hr, placenowkb, placewillkb, yesnotransfer,changetr, placenowkbedi, placewillkbedi
 from different_format.utils.states import FormTransf
 from keyboards.reply import cancel, main
+from utils.states import Employee
  
 router = Router()
-
-@router.message(F.text == "Заявка на перевод на другой формат работы")
-async def fill_transfer(message: Message, state: FSMContext):
-    await state.set_state(FormTransf.placenow)
-    await message.answer(
-        "Выберите <b>формат работы на данный момент</b>",
-        reply_markup=placenowkb,
-        parse_mode="HTML",
-    )
-
-
 
 @router.callback_query(F.data == 'officenow')
 async def fill_officenow(call: types.CallbackQuery, bot: Bot, state: FSMContext):
@@ -83,12 +73,6 @@ async def nohr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     await call.message.edit_reply_markup()
     await state.clear()
 
-#Начинаем мусорить
-#Начинаем мусорить
-#Начинаем мусорить
-
-
-
 
 
 @router.callback_query(F.data == 'placenowedi')
@@ -104,7 +88,10 @@ async def placenowedit(call: types.CallbackQuery, bot: Bot, state: FSMContext):
 async def fill_officenowedit(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     await state.update_data(placenow = "Офис")
     data = await state.get_data()
-    formatter_text = (f"Ваша заявка:\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
+    name = data.get('search_name')
+    division = data.get('search_division')
+    post = data.get('search_post')
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы:\n<b>Инициатор:</b>\n<b>Сотрудник:</b> {name}, {division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
     await call.message.edit_reply_markup()
@@ -113,7 +100,10 @@ async def fill_officenowedit(call: types.CallbackQuery, bot: Bot, state: FSMCont
 async def fill_hybridnowedit(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     await state.update_data(placenow = "Гибрид")
     data = await state.get_data()
-    formatter_text = (f"Ваша заявка:\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
+    name = data.get('search_name')
+    division = data.get('search_division')
+    post = data.get('search_post')
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы:\n<b>Инициатор:</b>\n<b>Сотрудник:</b> {name}, {division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
     await call.message.edit_reply_markup()
@@ -122,12 +112,13 @@ async def fill_hybridnowedit(call: types.CallbackQuery, bot: Bot, state: FSMCont
 async def fill_remotelynowedit(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     await state.update_data(placenow = "Удаленно")
     data = await state.get_data()
-    formatter_text = (f"Ваша заявка:\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
+    name = data.get('search_name')
+    division = data.get('search_division')
+    post = data.get('search_post')
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы:\n<b>Инициатор:</b>\n<b>Сотрудник:</b> {name}, {division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
     await call.message.edit_reply_markup()
-
-
 
 
 
@@ -145,7 +136,10 @@ async def placewilledit(call: types.CallbackQuery, bot: Bot, state: FSMContext):
 async def fill_officewilledit(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     await state.update_data(placewill = "Офис")
     data = await state.get_data()
-    formatter_text = (f"Ваша заявка:\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
+    name = data.get('search_name')
+    division = data.get('search_division')
+    post = data.get('search_post')
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы:\n<b>Инициатор:</b>\n<b>Сотрудник:</b> {name}, {division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
     await call.message.edit_reply_markup()
@@ -154,7 +148,10 @@ async def fill_officewilledit(call: types.CallbackQuery, bot: Bot, state: FSMCon
 async def fill_hybridwilledit(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     await state.update_data(placewill = "Гибрид")
     data = await state.get_data()
-    formatter_text = (f"Ваша заявка:\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
+    name = data.get('search_name')
+    division = data.get('search_division')
+    post = data.get('search_post')
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы:\n<b>Инициатор:</b>\n <b>Сотрудник:</b> {name}, {division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
     await call.message.edit_reply_markup()
@@ -163,7 +160,10 @@ async def fill_hybridwilledit(call: types.CallbackQuery, bot: Bot, state: FSMCon
 async def fill_remotelywilledit(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     await state.update_data(placewill = "Удаленно")
     data = await state.get_data()
-    formatter_text = (f"Ваша заявка:\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
+    name = data.get('search_name')
+    division = data.get('search_division')
+    post = data.get('search_post')
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы:\n<b>Инициатор:</b>\n<b>Сотрудник:</b> {name}, {division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
     await call.message.edit_reply_markup()
