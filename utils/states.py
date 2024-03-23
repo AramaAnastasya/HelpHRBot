@@ -10,3 +10,7 @@ class Employee(StatesGroup):
     search_post_chg = State()
     search_division_chg = State()
     request = State()
+    initiator = State()
+    search = State()
+    search_change = State()
+    division_input = State()

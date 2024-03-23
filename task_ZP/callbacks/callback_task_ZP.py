@@ -7,7 +7,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.utils.formatting import as_list, as_marked_section, Bold,Spoiler #Italic, as_numbered_list и тд 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
+from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy.orm import sessionmaker
 
 from filters.chat_types import ChatTypeFilter
 
@@ -23,25 +24,53 @@ user_private_router.message.filter(ChatTypeFilter(["private"]))
 bot = Bot(token=os.getenv('TOKEN'), parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
+from config import DATABASE_URI
 
+# Создайте подключение к базе данных
+engine = create_engine(DATABASE_URI)
+
+# Создайте сессию для работы с базой данных
+Session = sessionmaker(bind=engine)
+
+# Создайте таблицу, из которой будут извлекаться данные
+metadata = MetaData()
+table = Table('employee', metadata, autoload_with=engine)
+table_division = Table('Division', metadata, autoload_with=engine)
 
 async def agreement_ZP(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
-    name = user_data.get('search_name')
-    division = user_data.get('search_division')
-    post = user_data.get('search_post')
+    session = Session()
+    search_bd = user_data.get('search_bd')
+    initiator = user_data.get('initiator')
+    result = session.query(table).filter(table.c.id == search_bd).first()
+    resultInitiator = session.query(table).filter(table.c.id_telegram == str(initiator)).first()
     proposed = user_data.get('proposed_amount')
     current = user_data.get('current_amount')
     reasons = user_data.get('reasons')
-
-    await message.answer(
+    search = user_data.get('search')
+    name = user_data.get('search_name')
+    division = user_data.get('search_division')
+    post = user_data.get('search_post')
+    
+    if search == False:
+        await message.answer(
         "Ваша заявка на согласование заработной платы:\n"
-        f"<b>Инициатор:</b> \n"
-        f"<b>Сотрудник:</b> {name}, {division}, {post}\n"
+        f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
+        f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
         f"<b>Действующая сумма:</b> {current}.\n"
         f"<b>Предлагаемая сумма:</b> {proposed}.\n"
         f"<b>Причина перевода: </b>{reasons}.",
-    )
+        )
+    else:
+        result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
+        await message.answer(
+        "Ваша заявка на согласование заработной платы:\n"
+        f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
+        f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
+        f"<b>Действующая сумма:</b> {current}.\n"
+        f"<b>Предлагаемая сумма:</b> {proposed}.\n"
+        f"<b>Причина перевода: </b>{reasons}.",
+        )
     await message.answer(
         "Запрос введен верно?",
         reply_markup=get_callback_btns(
@@ -86,21 +115,19 @@ async def stop_app(callback: types.CallbackQuery):
     )
 
 @user_private_router.callback_query(F.data.startswith("no_task"))
-async def no_app(callback:types.CallbackQuery):
+async def no_app(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     await callback.message.answer(
-        "Что необходимо изменить?", 
-        reply_markup=get_callback_btns(
+            "Что необходимо изменить?", 
+            reply_markup=get_callback_btns(
                 btns={
-                    'ФИО сотрудника': f'search_name_change',
-                    'Подразделение': f'search_division_change',
-                    'Должность': f'search_post_change',
+                    'Сотрудник': f'search_changed',
                     'Действующая сумма': f'current_amount_change',
                     'Предлагаемая сумма': f'proposed_amount_change',
                     'Причины перевода': f'reasons_change',
                 }
             ),    
-    )
+        )
 
  
 

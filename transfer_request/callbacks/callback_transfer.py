@@ -7,7 +7,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.utils.formatting import as_list, as_marked_section, Bold,Spoiler #Italic, as_numbered_list и тд 
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
+from aiogram.types import Message
+from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy.orm import sessionmaker
 
 from filters.chat_types import ChatTypeFilter
 
@@ -23,13 +25,27 @@ user_private_router.message.filter(ChatTypeFilter(["private"]))
 bot = Bot(token=os.getenv('TOKEN'), parse_mode=ParseMode.HTML)
 dp = Dispatcher()
 
+from config import DATABASE_URI
 
+# Создайте подключение к базе данных
+engine = create_engine(DATABASE_URI)
+
+# Создайте сессию для работы с базой данных
+Session = sessionmaker(bind=engine)
+
+# Создайте таблицу, из которой будут извлекаться данные
+metadata = MetaData()
+table = Table('employee', metadata, autoload_with=engine)
+table_division = Table('Division', metadata, autoload_with=engine)
 
 async def staff_post(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
-    name = user_data.get('search_name')
-    division = user_data.get('search_division')
-    post = user_data.get('search_post')
+    # Получите сессию для работы с базой данных
+    session = Session()
+    search_bd = user_data.get('search_bd')
+    result = session.query(table).filter(table.c.id == search_bd).first()
+    initiator = user_data.get('initiator')
+    resultInitiator = session.query(table).filter(table.c.id_telegram == str(initiator)).first()
     is_s = user_data.get('is_staff')
 
     data = await state.get_data()
@@ -37,12 +53,26 @@ async def staff_post(message: types.Message, state: FSMContext):
     goals_list = data.get("goals_list")
     due_date_list = data.get("due_date_list")
     results_list = data.get("results_list")
-    await message.answer(
-        "Ваша заявка на перевод:\n"
-        f"<b>Инициатор:</b> \n"
-        f"<b>Сотрудник:</b> {name}, {division}, {post}\n"
+
+    search = user_data.get('search')
+    name = user_data.get('search_name')
+    division = user_data.get('search_division')
+    post = user_data.get('search_post')
+    if search == False:
+        await message.answer(
+        "Ваша заявка на согласование заработной платы:\n"
+        f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
+        f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
         f"<b>Дата конца Испытательного Срока:</b> {is_s}."  
-    )
+        )
+    else:
+        result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
+        await message.answer(
+        "Ваша заявка на согласование заработной платы:\n"
+        f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
+        f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
+          f"<b>Дата конца Испытательного Срока:</b> {is_s}."  
+        )
     if len(goals_list) == len(due_date_list) == len(results_list):
         #Все списки имеют одинаковую длину
         for i, goal in enumerate(goals_list):
@@ -53,14 +83,14 @@ async def staff_post(message: types.Message, state: FSMContext):
                 await message.answer(message_text, 
                 )
                 await message.answer(
-                "Запрос введен верно?",
-                reply_markup=get_callback_btns(
-                btns={
-                'Данные верны': f'yes_application',
-                'Изменить данные': f'no_application',
-                }   
+                    "Запрос введен верно?",
+                    reply_markup=get_callback_btns(
+                    btns={
+                    'Данные верны': f'yes_application',
+                    'Изменить данные': f'no_application',
+                    }   
+            )
         )
-    )
             else:
                 message_text = f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}"
                 await message.answer(message_text)
@@ -72,6 +102,8 @@ async def staff_post(message: types.Message, state: FSMContext):
 @user_private_router.callback_query(F.data.startswith("yes_application"))
 async def yes_app(callback:types.CallbackQuery):
     await callback.message.delete_reply_markup()
+    #await bot.answer_callback_query(callback.id, text="Вы нажали на кнопку!")
+    # Отправка сообщения, инсценсирующего нажатие кнопки reply
     await bot.send_message(callback.from_user.id, "Вы подтвердили правильность введенных данных.")
     await callback.message.answer(
         "Отправить заявку HR?",      
@@ -109,9 +141,7 @@ async def no_app(callback:types.CallbackQuery):
         "Что необходимо изменить?", 
         reply_markup=get_callback_btns(
                 btns={
-                    'ФИО сотрудника': f'search_name_change',
-                    'Подразделение': f'search_division_change',
-                    'Должность': f'search_post_change',
+                    'Сотрудник': f'search_changed',
                     'Дата конца ИС': f'is_change',
                     'Цели': f'goals_change',
                 }

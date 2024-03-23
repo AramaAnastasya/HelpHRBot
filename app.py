@@ -6,7 +6,7 @@ from aiogram.enums import ParseMode
 from dotenv import find_dotenv, load_dotenv
 load_dotenv(find_dotenv())
 
-from handlers import user_cmd
+from handlers import user_cmd, employee_search
 
 from avtorization.handlers import user_avtoriz
 
@@ -22,6 +22,8 @@ from general_form.callbacks import callback_data
 from different_format.handlers import user_diff_format
 from different_format.callbacks import callback_format
 
+from HR import hr
+
 ALLOWED_UPDATES = ['message, edited_message']
 
 bot = Bot(token=os.getenv('TOKEN'), parse_mode=ParseMode.HTML)
@@ -30,6 +32,7 @@ dp = Dispatcher()
 
 dp.include_routers(
         user_cmd.user_private_router,
+        employee_search.user_private_router,
         user_avtoriz.user_login_router,
         user_private.user_private_router,
         callback_transfer.user_private_router,
@@ -38,7 +41,8 @@ dp.include_routers(
         user_agreement.user_private_router,
         callback_task_ZP.user_private_router,
         user_diff_format.router,
-        callback_format.router
+        callback_format.router, 
+        hr.user_private_router
     )
 
 async def main(): 

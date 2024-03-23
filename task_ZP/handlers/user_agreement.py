@@ -29,7 +29,9 @@ async def cmd_post(message: Message, state: FSMContext):
     await state.update_data(current_amount=message.text)
     data = await state.get_data()
     current_amount_change = data.get('current_amount_changed')
+    chat_member = await bot.get_chat_member(message.chat.id, message.from_user.id)
     if current_amount_change == True:  
+        await state.update_data(initiator = chat_member.user.id)
         await agreement_ZP(message, state)
         await state.update_data(current_amount_changed=False)
     else:  
@@ -46,7 +48,9 @@ async def cmd_division(message: Message, state: FSMContext):
     await state.update_data(proposed_amount=message.text)
     user_data = await state.get_data()
     proposed_amount_change = user_data.get('proposed_amount_changed')
+    chat_member = await bot.get_chat_member(message.chat.id, message.from_user.id)
     if proposed_amount_change == True:  
+        await state.update_data(initiator = chat_member.user.id)
         await agreement_ZP(message, state)
         await state.update_data(proposed_amount_changed=False)
     else: 
@@ -62,10 +66,12 @@ async def cmd_is(message: Message, state: FSMContext):
     await state.update_data(reasons=message.text)
     user_data = await state.get_data()
     reasons_change = user_data.get('reasons_changed')
+    chat_member = await bot.get_chat_member(message.chat.id, message.from_user.id)
     if reasons_change == True: 
+        await state.update_data(initiator = chat_member.user.id) 
         await agreement_ZP(message, state)
         await state.update_data(reasons_change=False)
     else: 
-
+        await state.update_data(initiator = chat_member.user.id)
         await agreement_ZP(message, state)
-
+        

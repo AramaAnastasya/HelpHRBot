@@ -102,11 +102,7 @@ yesnotransfer = InlineKeyboardMarkup(
 changetr = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text="ФИО сотрудника", callback_data="search_name_change"),
-        ],
-        [
-            InlineKeyboardButton(text="Подразделение", callback_data="search_division_change"),
-            InlineKeyboardButton(text="Должность", callback_data="search_post_change"),            
+            InlineKeyboardButton(text="Сотрудник", callback_data="search_changed"),
         ],
         [
             InlineKeyboardButton(text="Формат на данный момент", callback_data="placenowedi"),

@@ -47,3 +47,11 @@ async def cmd_cancel(message: Message, state: FSMContext):
     await message.answer(
         text="Выберите тип обращения"
     )
+
+@user_private_router.message(F.text.lower() == "← назад")
+async def cmd_cancel(message: Message, state: FSMContext):
+    await state.clear()
+    await message.answer(
+        text="Выберите нужную категорию",
+        reply_markup=reply.hr
+    )

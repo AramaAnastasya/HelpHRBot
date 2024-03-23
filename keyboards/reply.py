@@ -67,3 +67,23 @@ employee_search = ReplyKeyboardMarkup(
     resize_keyboard=True,
     input_field_placeholder='Что Вас интересует?'
 )
+
+hr = ReplyKeyboardMarkup(
+    keyboard=[
+        [
+            KeyboardButton(text="Актуальные задачи"),
+            KeyboardButton(text="Новые задачи"),
+            KeyboardButton(text="Статистика"),
+        ]
+    ],
+    resize_keyboard=True
+)
+
+back = ReplyKeyboardMarkup( 
+    keyboard=[
+        [
+            KeyboardButton(text="← Назад ")
+        ]
+    ],
+    resize_keyboard=True,
+)

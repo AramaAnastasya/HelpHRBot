@@ -29,7 +29,9 @@ async def cmd_goals(message: Message, state: FSMContext):
     await state.update_data(is_staff=message.text)
     user_data = await state.get_data()
     is_change = user_data.get('is_changed')
+    chat_member = await bot.get_chat_member(message.chat.id, message.from_user.id)
     if is_change == True:   
+        await state.update_data(initiator = chat_member.user.id)
         await staff_post(message, state)
         await state.update_data(is_changed=False)
     else:   
@@ -52,7 +54,9 @@ async def cmd_goals_loop(message: Message, state: FSMContext):
     await state.update_data(goals_count=message.text)
     user_data = await state.get_data()
     goals_count_change = user_data.get('goals_count_changed')
+    chat_member = await bot.get_chat_member(message.chat.id, message.from_user.id)
     if goals_count_change == True: 
+        await state.update_data(initiator = chat_member.user.id)
         await staff_post(message, state)
         await state.update_data(goals_count_changed=False)
     else: 
@@ -73,7 +77,7 @@ async def cmd_due(message: Message, state: FSMContext):
     data = await state.get_data()
 
     user_data = await state.get_data()
-    goals_change = user_data.get('goals_changed')
+    goals_change = user_data.get('goals_changed')    
     if goals_change == True: 
         # Получение номера цели и шага из данных состояния
         goal_number = data.get("goal_number")
@@ -160,7 +164,7 @@ async def cmd_results_loop(message: Message, state: FSMContext):
 
     user_data = await state.get_data()
     results_change = user_data.get('results_changed')
-
+    chat_member = await bot.get_chat_member(message.chat.id, message.from_user.id)
     if results_change == True: 
 
         goal_number = data.get("goal_number")
@@ -175,6 +179,7 @@ async def cmd_results_loop(message: Message, state: FSMContext):
             await message.answer(
                 f"Данные цели {goal_number+1} изменены."
             )
+            await state.update_data(initiator = chat_member.user.id)
             await staff_post(message, state)
             await state.update_data(results_changed=False)
     else:
@@ -196,6 +201,7 @@ async def cmd_results_loop(message: Message, state: FSMContext):
         if current_goal == goals_count-1:
             # Завершение цикла и переход к следующему состоянию
             await message.answer(f"Цели введены успешно.")
+            await state.update_data(initiator = chat_member.user.id)
             await staff_post(message, state)
         else:
             # Переход к следующему этапу цикла
