@@ -93,7 +93,7 @@ async def cmd_is(message: types.Message, state: FSMContext):
             session.commit()
             await state.clear()
             await message.reply(f"Вы успешно авторизованы в HR!")
-            await message.answer( "Выбирете нужную категорию", reply_markup=reply.hr)
+            await message.answer( "Выберите нужную категорию", reply_markup=reply.hr)
     else:
             await message.reply("Ошибка авторизации. Пожалуйста, отправьте свой контактный номер телефона.")
     session.close()
