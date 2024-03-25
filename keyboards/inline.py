@@ -29,3 +29,13 @@ alphabet_division = InlineKeyboardMarkup(
         ]
     ]
 )
+
+send = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Развернуть", callback_data="qq"),
+            InlineKeyboardButton(text="Установка дедлайна", callback_data="qqq")
+        ]
+
+    ]
+)

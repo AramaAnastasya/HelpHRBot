@@ -3,10 +3,14 @@ from aiogram import Router, F, Bot, types
 from aiogram.types import Message
 from different_format.keyboards.inline import hr, placenowkb, placewillkb, yesnotransfer,changetr, placenowkbedi, placewillkbedi
 from different_format.utils.states import FormTransf
-from keyboards.reply import cancel, main
+from keyboards.reply import cancel, main, start_kb
+from keyboards import inline
 from utils.states import Employee
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.orm import sessionmaker
+from avtorization.utils.states import FSMAdmin
+from datetime import date
+from sqlalchemy import insert
 
 from config import DATABASE_URI
 
@@ -20,6 +24,8 @@ Session = sessionmaker(bind=engine)
 metadata = MetaData()
 table = Table('employee', metadata, autoload_with=engine)
 table_division = Table('Division', metadata, autoload_with=engine)
+table_position = Table('Position', metadata, autoload_with=engine)
+application = Table('Applications', metadata, autoload_with=engine)
 
 router = Router()
 
@@ -74,16 +80,100 @@ async def notr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     await bot.send_message(call.from_user.id, "Выберите пункт для изменения:", reply_markup=changetr)
     await call.message.edit_reply_markup()
 
-@router.callback_query(F.data == 'yeshr')
-async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
-    await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
-    await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
-    await call.message.edit_reply_markup()
-    await state.clear()
+@router.callback_query(F.data == 'yes_diff')
+async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
+    await call.message.delete_reply_markup()
+    today = date.today()
+    session = Session()
+    user_id = call.from_user.id
+    user_id_str = str(user_id) 
 
-@router.callback_query(F.data == 'nohr')
+    user_info = session.query(table).filter(table.c.id_telegram == user_id_str).first()
+    if user_info:
+        # Получение данных из состояний
+        data = await state.get_data()
+        search_bd = data.get('search_bd')
+        search = data.get('search')
+        name = data.get('search_name')
+        division = data.get('search_division')
+        post = data.get('search_post')
+        print("a")
+        if search == False:
+            result = session.query(table).filter(table.c.id == search_bd).first()
+            # 2. Обновление записи в таблице Applications
+            application_data = {
+                "ID_Initiator": user_info.id,
+                "ID_Employee": result.id,
+                "ID_Class_application": 2,
+                'Current_work_format': data['placenow'],
+                'Future_work_format': data['placewill'],
+                'Opening_hours_(requested)': data['timework'],
+                'City': data['city'],
+                'Cause': data['reason'],
+                "Date_application": today.strftime('%Y-%m-%d'),
+            }
+            session.execute(
+                insert(application).values(application_data)
+            )
+            await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
+            await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
+            await bot.send_message(id_HR, 
+                                f"<b>Заявка на перевод на другой формат работы:</b>\n"
+                                f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
+                                f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
+                                f"<b>Формат на данный момент:</b> {data['placenow']}\n"
+                                f"<b>Формат на переход:</b> {data['placewill']}\n"
+                                f"<b>Часы работы:</b> {data['timework']}\n"
+                                f"<b>Город:</b> {data['city']}\n"
+                                f"<b>Причина перевода:</b> {data['reason']}\n"
+                                f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", 
+                                parse_mode="HTML", reply_markup=inline.send)
+        else:
+            result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
+            resultPositiong = session.query(table_position).filter(table_position.c.Position == str(post)).first()
+            # 2. Обновление записи в таблице Applications
+            application_data = {
+                "ID_Initiator": user_info.id,
+                "ID_Employee": 1,
+                "ID_Class_application": 3,
+                'Full_name_employee': name,
+                'ID_Division': int(division),
+                'ID_Position': resultPositiong.id,
+                'Current_work_format': data['placenow'],
+                'Future_work_format': data['placewill'],
+                'Opening_hours_(requested)': data['timework'],
+                'City': data['city'],
+                'Cause': data['reason'],
+                "Date_application": today.strftime('%Y-%m-%d'),
+            }
+            session.execute(
+                insert(application).values(application_data)
+            )
+            today = date.today()
+            await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
+            await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
+            await bot.send_message(id_HR, 
+                                f"<b>Заявка на перевод на другой формат работы:</b>\n"
+                                f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
+                                f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
+                                f"<b>Формат на данный момент:</b> {data['placenow']}\n"
+                                f"<b>Формат на переход:</b> {data['placewill']}\n"
+                                f"<b>Часы работы:</b> {data['timework']}\n"
+                                f"<b>Город:</b> {data['city']}\n"
+                                f"<b>Причина перевода:</b> {data['reason']}\n"
+                                f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", 
+                                parse_mode="HTML", reply_markup=inline.send)
+        session.commit()
+        await call.message.edit_reply_markup()
+        await state.clear()
+    else:
+        await bot.send_message(call.from_user.id, "Ошибка в формировании заявки.")
+        await bot.send_message(call.from_user.id, "Пройдите авторизацию повторно", reply_markup=start_kb)
+
+
+@router.callback_query(F.data == 'no_diff')
 async def nohr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
-    await bot.send_message(call.from_user.id, "Ну ладно...", reply_markup=main)
+    await bot.send_message(call.from_user.id, "Выберите тип обращения", reply_markup=main)
     await call.message.edit_reply_markup()
     await state.clear()
 
@@ -287,5 +377,3 @@ async def reasonedit(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     await call.message.edit_reply_markup()
     await bot.send_message(call.from_user.id, "Введите <b>причину перевода</b>", parse_mode='HTML')
     await state.set_state(FormTransf.reason2)
-
-

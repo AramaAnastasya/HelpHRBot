@@ -13,7 +13,7 @@ yesno = InlineKeyboardMarkup(
 yesnoquiz = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text="Да", callback_data="yes"),
+            InlineKeyboardButton(text="Да", callback_data="yesquiz"),
             InlineKeyboardButton(text="Нет", callback_data="noquiz")
         ]
 
@@ -26,6 +26,16 @@ hr = InlineKeyboardMarkup(
         [
             InlineKeyboardButton(text="Да", callback_data="yeshr"),
             InlineKeyboardButton(text="Нет", callback_data="nohr")
+        ]
+
+    ]
+)
+
+hrquiz = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Да", callback_data="yeshrquiz"),
+            InlineKeyboardButton(text="Нет", callback_data="nohrquiz")
         ]
 
     ]
@@ -46,6 +56,17 @@ changequiz = InlineKeyboardMarkup(
         [
             InlineKeyboardButton(text="Суть вопроса", callback_data="quizedit"),
             InlineKeyboardButton(text="Ожидаемый результат", callback_data="resquizedit")
+        ]
+
+    ]
+)
+
+
+send = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Развернуть", callback_data="qq"),
+            InlineKeyboardButton(text="Установка дедлайна", callback_data="qqq")
         ]
 
     ]

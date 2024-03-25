@@ -9,12 +9,14 @@ from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.utils.formatting import as_list, as_marked_section, Bold,Spoiler #Italic, as_numbered_list и тд 
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.orm import sessionmaker
-
+from avtorization.utils.states import FSMAdmin
+from datetime import date
+from sqlalchemy import insert
 from filters.chat_types import ChatTypeFilter
 
 from utils.states import Employee
 from task_ZP.utils.states import taskZP
-from keyboards import reply
+from keyboards import reply, inline
 from task_ZP.keyboards.inline import get_callback_btns
 
 user_private_router = Router()
@@ -36,6 +38,8 @@ Session = sessionmaker(bind=engine)
 metadata = MetaData()
 table = Table('employee', metadata, autoload_with=engine)
 table_division = Table('Division', metadata, autoload_with=engine)
+table_position = Table('Position', metadata, autoload_with=engine)
+application = Table('Applications', metadata, autoload_with=engine)
 
 async def agreement_ZP(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
@@ -51,35 +55,40 @@ async def agreement_ZP(message: types.Message, state: FSMContext):
     name = user_data.get('search_name')
     division = user_data.get('search_division')
     post = user_data.get('search_post')
-    
-    if search == False:
+    if resultInitiator:
+        if search == False:
+            await message.answer(
+            "Ваша заявка на согласование заработной платы:\n"
+            f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
+            f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
+            f"<b>Действующая сумма:</b> {current}.\n"
+            f"<b>Предлагаемая сумма:</b> {proposed}.\n"
+            f"<b>Причина перевода: </b>{reasons}.",
+            )
+        else:
+            result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
+            await message.answer(
+            "Ваша заявка на согласование заработной платы:\n"
+            f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
+            f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
+            f"<b>Действующая сумма:</b> {current}.\n"
+            f"<b>Предлагаемая сумма:</b> {proposed}.\n"
+            f"<b>Причина перевода: </b>{reasons}.",
+            )
         await message.answer(
-        "Ваша заявка на согласование заработной платы:\n"
-        f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
-        f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
-        f"<b>Действующая сумма:</b> {current}.\n"
-        f"<b>Предлагаемая сумма:</b> {proposed}.\n"
-        f"<b>Причина перевода: </b>{reasons}.",
+            "Запрос введен верно?",
+            reply_markup=get_callback_btns(
+                btns={
+                'Данные верны': f'yes_task',
+                'Изменить данные': f'no_task',
+                }   
+            )
         )
     else:
-        result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-        await message.answer(
-        "Ваша заявка на согласование заработной платы:\n"
-        f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
-        f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
-        f"<b>Действующая сумма:</b> {current}.\n"
-        f"<b>Предлагаемая сумма:</b> {proposed}.\n"
-        f"<b>Причина перевода: </b>{reasons}.",
-        )
-    await message.answer(
-        "Запрос введен верно?",
-        reply_markup=get_callback_btns(
-            btns={
-            'Данные верны': f'yes_task',
-            'Изменить данные': f'no_task',
-            }   
-        )
-    )
+        await state.clear()
+        await message.answer("Ошибка в формировании заявки.")
+        await message.answer("Пройдите авторизацию повторно", reply_markup=reply.start_kb)
+        await state.set_state(FSMAdmin.phone)
 
 @user_private_router.callback_query(F.data.startswith("yes_task"))
 async def yes_app(callback:types.CallbackQuery):
@@ -98,20 +107,94 @@ async def yes_app(callback:types.CallbackQuery):
 @user_private_router.callback_query(F.data.startswith("go_app"))
 async def go_app(callback: types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
-    await callback.message.answer(
-        "Заявка успешно отправлена!"
-    )
-    await callback.message.answer(
-        "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main
-    )
-    # Сброс состояния и сохранённых данных у пользователя
-    await state.clear()
+    today = date.today()
+    session = Session()
+    user_id = callback.from_user.id
+    user_id_str = str(user_id)  # Преобразуем user_id в строку
+    # 1. Получение id_iniziator из таблицы employee
+
+    user_info = session.query(table).filter(table.c.id_telegram == user_id_str).first()
+    if user_info:
+        # Получение данных из состояний
+        data = await state.get_data()
+        search_bd = data.get('search_bd')
+        proposed = data.get('proposed_amount')
+        current = data.get('current_amount')
+        reasons = data.get('reasons')
+        search = data.get('search')
+        name = data.get('search_name')
+        division = data.get('search_division')
+        post = data.get('search_post')
+        if search == False:
+            result = session.query(table).filter(table.c.id == search_bd).first()
+            # 2. Обновление записи в таблице Applications
+            application_data = {
+                "ID_Initiator": user_info.id,
+                "ID_Employee": result.id,
+                "ID_Class_application": 3,
+                'Suggested_amount': proposed,
+                'Current_amount': current,
+                'Cause': reasons,
+                "Date_application": today.strftime('%Y-%m-%d'),
+            }
+            session.execute(
+                insert(application).values(application_data)
+            )
+            await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
+            await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
+            await bot.send_message(id_HR, 
+                                f"<b>Заявка на согласование ЗП:</b>\n"
+                                f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
+                                f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
+                                f"<b>Действующая сумма:</b> {current}.\n"
+                                f"<b>Предлагаемая сумма:</b> {proposed}.\n"
+                                f"<b>Причина перевода: </b>{reasons}.\n"
+                                f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", 
+                                parse_mode="HTML", reply_markup=inline.send)
+        else:
+            result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
+            resultPositiong = session.query(table_position).filter(table_position.c.Position == str(post)).first()
+            # 2. Обновление записи в таблице Applications
+            application_data = {
+                "ID_Initiator": user_info.id,
+                "ID_Employee": 1,
+                "ID_Class_application": 3,
+                'Full_name_employee': name,
+                'ID_Division': int(division),
+                'ID_Position': resultPositiong.id,
+                'Suggested_amount': proposed,
+                'Current_amount': current,
+                'Cause': reasons,
+                "Date_application": today.strftime('%Y-%m-%d'),
+            }
+            session.execute(
+                insert(application).values(application_data)
+            )
+            today = date.today()
+            await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
+            await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
+            await bot.send_message(id_HR, 
+                                f"<b>Заявка на согласование ЗП:</b>\n"
+                                f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
+                                f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
+                                f"<b>Действующая сумма:</b> {current}.\n"
+                                f"<b>Предлагаемая сумма:</b> {proposed}.\n"
+                                f"<b>Причина перевода: </b>{reasons}.\n"
+                                f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", 
+                                parse_mode="HTML", reply_markup=inline.send)
+        session.commit()
+        await callback.message.edit_reply_markup()
+        await state.clear()
+    else:
+        await bot.send_message(callback.from_user.id, "Ошибка в формировании заявки.")
+        await bot.send_message(callback.from_user.id, "Пройдите авторизацию повторно", reply_markup=reply.start_kb)
+
 
 @user_private_router.callback_query(F.data.startswith("stop_app"))
 async def stop_app(callback: types.CallbackQuery):
     await callback.message.delete_reply_markup() 
     await callback.message.answer(
-        "Выберите тип обращения.", reply_markup=reply.main
+        "Выберите тип обращения", reply_markup=reply.main
     )
 
 @user_private_router.callback_query(F.data.startswith("no_task"))

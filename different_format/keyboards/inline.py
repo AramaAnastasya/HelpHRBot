@@ -24,8 +24,8 @@ yesnoquiz = InlineKeyboardMarkup(
 hr = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text="Да", callback_data="yeshr"),
-            InlineKeyboardButton(text="Нет", callback_data="nohr")
+            InlineKeyboardButton(text="Да", callback_data="yes_diff"),
+            InlineKeyboardButton(text="Нет", callback_data="no_diff")
         ]
 
     ]

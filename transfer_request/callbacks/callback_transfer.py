@@ -10,12 +10,15 @@ from aiogram.utils.formatting import as_list, as_marked_section, Bold,Spoiler #I
 from aiogram.types import Message
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.orm import sessionmaker
+from avtorization.utils.states import FSMAdmin
+from datetime import date
+from sqlalchemy import insert
 
 from filters.chat_types import ChatTypeFilter
 
 from utils.states import Employee
 from transfer_request.utils.states import transferRequest
-from keyboards import reply
+from keyboards import reply, inline
 from transfer_request.keyboards.inline import get_callback_btns
 
 user_private_router = Router()
@@ -37,6 +40,8 @@ Session = sessionmaker(bind=engine)
 metadata = MetaData()
 table = Table('employee', metadata, autoload_with=engine)
 table_division = Table('Division', metadata, autoload_with=engine)
+table_position = Table('Position', metadata, autoload_with=engine)
+application = Table('Applications', metadata, autoload_with=engine)
 
 async def staff_post(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
@@ -58,52 +63,56 @@ async def staff_post(message: types.Message, state: FSMContext):
     name = user_data.get('search_name')
     division = user_data.get('search_division')
     post = user_data.get('search_post')
-    if search == False:
-        await message.answer(
-        "Ваша заявка на согласование заработной платы:\n"
-        f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
-        f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
-        f"<b>Дата конца Испытательного Срока:</b> {is_s}."  
-        )
-    else:
-        result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-        await message.answer(
-        "Ваша заявка на согласование заработной платы:\n"
-        f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
-        f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
-          f"<b>Дата конца Испытательного Срока:</b> {is_s}."  
-        )
-    if len(goals_list) == len(due_date_list) == len(results_list):
-        #Все списки имеют одинаковую длину
-        for i, goal in enumerate(goals_list):
-            due_date = due_date_list[i]
-            result = results_list[i]
-            if i == len(goals_list) - 1:
-                message_text = f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}"
-                await message.answer(message_text, 
-                )
-                await message.answer(
-                    "Запрос введен верно?",
-                    reply_markup=get_callback_btns(
-                    btns={
-                    'Данные верны': f'yes_application',
-                    'Изменить данные': f'no_application',
-                    }   
+    if resultInitiator:
+        if search == False:
+            await message.answer(
+            "Ваша заявка на согласование заработной платы:\n"
+            f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
+            f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
+            f"<b>Дата конца Испытательного Срока:</b> {is_s}."  
             )
-        )
-            else:
-                message_text = f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}"
-                await message.answer(message_text)
+        else:
+            result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
+            await message.answer(
+            "Ваша заявка на согласование заработной платы:\n"
+            f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
+            f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
+            f"<b>Дата конца Испытательного Срока:</b> {is_s}."  
+            )
+        if len(goals_list) == len(due_date_list) == len(results_list):
+            #Все списки имеют одинаковую длину
+            for i, goal in enumerate(goals_list):
+                due_date = due_date_list[i]
+                result = results_list[i]
+                if i == len(goals_list) - 1:
+                    message_text = f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}"
+                    await message.answer(message_text, 
+                    )
+                    await message.answer(
+                        "Запрос введен верно?",
+                        reply_markup=get_callback_btns(
+                        btns={
+                        'Данные верны': f'yes_application',
+                        'Изменить данные': f'no_application',
+                        }   
+                )
+            )
+                else:
+                    message_text = f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}"
+                    await message.answer(message_text)
+        else:
+            await message.answer(
+                "Ошибка", reply_markup=reply.main
+            )
     else:
-        await message.answer(
-            "Ошибка", reply_markup=reply.main
-        )
+        await state.clear()
+        await message.answer("Ошибка в формировании заявки.")
+        await message.answer("Пройдите авторизацию повторно", reply_markup=reply.start_kb)
+        await state.set_state(FSMAdmin.phone)
 
 @user_private_router.callback_query(F.data.startswith("yes_application"))
 async def yes_app(callback:types.CallbackQuery):
     await callback.message.delete_reply_markup()
-    #await bot.answer_callback_query(callback.id, text="Вы нажали на кнопку!")
-    # Отправка сообщения, инсценсирующего нажатие кнопки reply
     await bot.send_message(callback.from_user.id, "Вы подтвердили правильность введенных данных.")
     await callback.message.answer(
         "Отправить заявку HR?",      
@@ -117,21 +126,99 @@ async def yes_app(callback:types.CallbackQuery):
 
 @user_private_router.callback_query(F.data.startswith("go_application"))
 async def go_app(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup() 
-    await callback.message.answer(
-        "Заявка успешно отправлена!"
-    )
-    await callback.message.answer(
-        "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main
-    )
-    # Сброс состояния и сохранённых данных у пользователя
-    await state.clear()
+    await callback.message.delete_reply_markup()
+    today = date.today()
+    session = Session()
+    user_id = callback.from_user.id
+    user_id_str = str(user_id) 
+
+    user_info = session.query(table).filter(table.c.id_telegram == user_id_str).first()
+    if user_info:
+
+        data = await state.get_data()
+        search_bd = data.get('search_bd')
+        is_s = data.get('is_staff')
+        goals_list = data.get("goals_list")
+        due_date_list = data.get("due_date_list")
+        results_list = data.get("results_list")
+        search = data.get('search')
+        name = data.get('search_name')
+        division = data.get('search_division')
+        post = data.get('search_post')
+        goals_IS = ""
+        for i, goal in enumerate(goals_list):
+                due_date = due_date_list[i]
+                result = results_list[i]
+                goals_IS += f"<b>Цель {i + 1}:</b> {goal}\\n<b>Срок исполнения:</b> {due_date}\\n<b>Ожидаемый результат:</b> {result}\\n"    
+        print(goals_IS)
+        if search == False:
+            result = session.query(table).filter(table.c.id == search_bd).first()
+            application_data = {
+                "ID_Initiator": user_info.id,
+                "ID_Employee": result.id,
+                "ID_Class_application": 1,
+                'End_date_IS': is_s,
+                'Goals_for_period_IS': goals_IS,
+                "Date_application": today.strftime('%Y-%m-%d'),
+            }
+            session.execute(
+                insert(application).values(application_data)
+            )
+            await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
+            await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
+            text =  f"<b>Заявка на перевод:</b>\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
+
+            for i, goal in enumerate(goals_list):
+                due_date = due_date_list[i]
+                result = results_list[i]
+                text += f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}\n"    
+            text += f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>"        
+            await bot.send_message(id_HR, text,
+                                parse_mode="HTML", reply_markup=inline.send)
+        else:
+            result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
+            resultPositiong = session.query(table_position).filter(table_position.c.Position == str(post)).first()
+            # 2. Обновление записи в таблице Applications
+            application_data = {
+                "ID_Initiator": user_info.id,
+                "ID_Employee": 1,
+                "ID_Class_application": 1,
+                'Full_name_employee': name,
+                'ID_Division': int(division),
+                'ID_Position': resultPositiong.id,
+                'End_date_IS': is_s,
+                'Goals_for_period_IS': goals_IS,
+                "Date_application": today.strftime('%Y-%m-%d'),
+            }
+            session.execute(
+                insert(application).values(application_data)
+            )
+            today = date.today()
+            await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
+            await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
+            text =  f"<b>Заявка на перевод:</b>\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
+            for i, goal in enumerate(goals_list):
+                due_date = due_date_list[i]
+                result = results_list[i]
+                text += f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}\n" 
+            text += f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>"        
+            await bot.send_message(id_HR, text,
+                                parse_mode="HTML", reply_markup=inline.send)
+            
+        session.commit()
+        await callback.message.edit_reply_markup()
+        await state.clear()
+    else:
+        await bot.send_message(callback.from_user.id, "Ошибка в формировании заявки.")
+        await bot.send_message(callback.from_user.id, "Пройдите авторизацию повторно", reply_markup=reply.start_kb)
+
+
 
 @user_private_router.callback_query(F.data.startswith("stop_application"))
 async def stop_app(callback: types.CallbackQuery):
     await callback.message.delete_reply_markup() 
     await callback.message.answer(
-        "Выберите тип обращения.", reply_markup=reply.main
+        "Выберите тип обращения", reply_markup=reply.main
     )
 
 @user_private_router.callback_query(F.data.startswith("no_application"))
