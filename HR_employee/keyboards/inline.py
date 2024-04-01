@@ -17,9 +17,7 @@ def get_callback_btns(
 sorted_keybordFirst = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text="Заявки", callback_data="sort_app")
-        ],
-        [
+            InlineKeyboardButton(text="Заявки", callback_data="sort_app"),
             InlineKeyboardButton(text="Вопросы", callback_data="sort_quest")
         ],
         [
@@ -53,9 +51,7 @@ sorted_keybordSecond = InlineKeyboardMarkup(
 sortedAct_keybordFirst = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text="Заявки", callback_data="sort_app1")
-        ],
-        [
+            InlineKeyboardButton(text="Заявки", callback_data="sort_app1"),
             InlineKeyboardButton(text="Вопросы", callback_data="sort_quest1")
         ],
         [

@@ -121,6 +121,8 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
             )
             await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
+            await bot.send_message(existing_record_HR.id_telegram,
+                                   f"<b>🔔Вам поступила новая заявка</b>")
             await bot.send_message(existing_record_HR.id_telegram, 
                                  f"<b>Заявка на перевод на другой формат работы:</b>\n"
                                 f"<b>Номер заявки: </b>{new_id}\n"
@@ -128,7 +130,7 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
                                 f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}\n"
                                 f"<b>Формат на данный момент:</b> {data['placenow']}\n"
                                 f"<b>Формат на переход:</b> {data['placewill']}\n"
-                                f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", 
+                                f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", 
                                 parse_mode="HTML", reply_markup=send_different)
         else:
             result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
@@ -154,6 +156,8 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
             today = date.today()
             await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
+            await bot.send_message(existing_record_HR.id_telegram,
+                                   f"<b>🔔Вам поступила новая заявка</b>")
             await bot.send_message(existing_record_HR.id_telegram, 
                                 f"<b>Заявка на перевод на другой формат работы:</b>\n"
                                 f"<b>Номер заявки: </b>{new_id}\n"
@@ -161,7 +165,7 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
                                 f"<b>Сотрудник:</b> {name} \n"
                                 f"<b>Формат на данный момент:</b> {data['placenow']}\n"
                                 f"<b>Формат на переход:</b> {data['placewill']}\n"
-                                f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", 
+                                f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", 
                                 parse_mode="HTML", reply_markup=send_different)
         session.commit()
         await state.clear()
@@ -218,10 +222,7 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
     else:
         post_info = empl_id.Position
 
-    data = await state.get_data()
-    unwrap = data.get('unwrap')
- 
-    if unwrap == True:
+    if id_info.Date_planned_deadline != None:
         reply_markup = send_differentAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
     else:

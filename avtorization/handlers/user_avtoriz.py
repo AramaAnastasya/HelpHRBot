@@ -55,14 +55,13 @@ async def cmd_is(message: types.Message, state: FSMContext):
         if existing_record_HR:
             session.execute(
                 update(table)
-                .where(table.c.Phone_number == message.text)
+                .where(table.c.Phone_number == phone_number)
                 .values(id_telegram=chat_member.user.id)
             )
 
             session.commit()
             await state.clear()
-            await message.reply(f"Вы успешно авторизованы в HR!")
-            await message.answer( "Выбирете нужную категорию", reply_markup=reply.hr)
+            await message.reply(f"Вы успешно авторизованы в HR!",reply_markup=reply.hr)
         elif existing_record != None and existing_record_HR == None:
             # Авторизация по контакту пользователя
             session.execute(
@@ -111,8 +110,7 @@ async def cmd_is(message: types.Message, state: FSMContext):
 
                 session.commit()
                 await state.clear()
-                await message.reply(f"Вы успешно авторизованы в HR!")
-                await message.answer( "Выберите нужную категорию", reply_markup=reply.hr)
+                await message.reply(f"Вы успешно авторизованы в HR!", reply_markup=reply.hr)
         else:
                 await message.reply("Ошибка авторизации. Пожалуйста, отправьте свой контактный номер телефона.")
     

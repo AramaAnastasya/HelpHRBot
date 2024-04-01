@@ -149,7 +149,8 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             )
             await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
-            
+            await bot.send_message(existing_record_HR.id_telegram,
+                                   f"<b>🔔Вам поступила новая заявка</b>")
             await bot.send_message(existing_record_HR.id_telegram, 
                                 f"<b>Заявка на согласование заработной платы:</b>\n"
                                 f"<b>Номер заявки: </b>{new_id}\n"
@@ -157,7 +158,7 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
                                 f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}\n"
                                 f"<b>Действующая сумма:</b> {current}\n"
                                 f"<b>Предлагаемая сумма:</b> {proposed}\n"
-                                f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", 
+                                f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", 
                                 parse_mode="HTML", reply_markup=send_zp)
         else:
             result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
@@ -181,6 +182,8 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             today = date.today()
             await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
+            await bot.send_message(existing_record_HR.id_telegram,
+                                   f"<b>🔔Вам поступила новая заявка</b>")
             await bot.send_message(existing_record_HR.id_telegram, 
                                  f"<b>Заявка на согласование заработной платы:</b>\n"
                                 f"<b>Номер заявки: </b>{new_id}\n"
@@ -188,7 +191,7 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
                                 f"<b>Сотрудник:</b> {name}\n"
                                 f"<b>Действующая сумма:</b> {current}\n"
                                 f"<b>Предлагаемая сумма:</b> {proposed}\n"
-                                f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", 
+                                f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", 
                                 parse_mode="HTML", reply_markup=send_zp)
         session.commit()
 
@@ -246,10 +249,7 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
     else:
         post_info = empl_id.Position
 
-    data = await state.get_data()
-    unwrap = data.get('unwrap')
- 
-    if unwrap == True:
+    if id_info.Date_planned_deadline != None:
         reply_markup = send_zpAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
     else:
@@ -281,7 +281,7 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
                                     f"<b>Сотрудник:</b> {fullname_employee}\n"
                                     f"<b>Действующая сумма:</b> {current_amount}\n"
                                     f"<b>Предлагаемая сумма:</b> {suggest_amount}\n"
-                                    f"<b>Дата: {date_info}</b>"
+                                    f"<b>Дата:</b> {date_info}"
                                     f"{date_planned}", 
                                     parse_mode="HTML", reply_markup=reply_markup)
         # Обновляем состояние сообщения в "second"
@@ -301,7 +301,7 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
                                     f"<b>Действующая сумма:</b> {current_amount}\n"
                                     f"<b>Предлагаемая сумма:</b> {suggest_amount}\n"
                                     f"<b>Причина перевода: </b>{reason_change}\n"
-                                    f"<b>Дата: {date_info}</b>"
+                                    f"<b>Дата:</b> {date_info}"
                                     f"{date_planned}", 
                                     parse_mode="HTML", reply_markup=reply_markup)
         # Возвращаем состояние сообщения к "first"

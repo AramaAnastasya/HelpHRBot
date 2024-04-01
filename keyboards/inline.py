@@ -12,6 +12,9 @@ division_cmd = InlineKeyboardMarkup(
             InlineKeyboardButton(text="Портфель проектов", callback_data="briefcase_division")
         ],
         [
+            InlineKeyboardButton(text="Проектный офис", callback_data="proect_division")
+        ],
+        [
             InlineKeyboardButton(text="Отдел", callback_data="section_division"),
             InlineKeyboardButton(text="Сектор", callback_data="sector_division")
         ],

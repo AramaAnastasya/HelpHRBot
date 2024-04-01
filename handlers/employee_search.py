@@ -108,6 +108,7 @@ async def block_divis(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     session = Session()
     result = session.query(table_division).filter(table_division.c.Division == "Блок «Цифровая трансформация, бизнес-процессы и документооборот»").first()
+    print(result)
     result_Post = session.query(table_post).filter(table_post.c.ID_Division == int(result.id)).all()
     await state.update_data(search_division=int(result.id))
     await callback.message.answer(
@@ -126,6 +127,7 @@ async def department_divis(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     session = Session()
     result = session.query(table_division).filter(table_division.c.Division.contains("Департамент")).order_by(table_division.c.Division).all()
+    print(result)
     await state.update_data(division_input="Департамент")
     await callback.message.answer(
         "Вы выбрали <b>Департамент</b>",
@@ -143,6 +145,7 @@ async def department_divis(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     session = Session()
     result = session.query(table_division).filter(table_division.c.Division.contains("Портфель проектов")).order_by(table_division.c.Division).all()
+    print(result)
     await state.update_data(division_input="Портфель проектов")
     await callback.message.answer(
         "Вы выбрали <b>Портфель проектов</b>",
@@ -154,6 +157,25 @@ async def department_divis(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.answer(text)
     session.close()
     await state.set_state(Employee.search_division)
+
+@user_private_router.callback_query(F.data.startswith("proect_division"))
+async def department_divis(callback:types.CallbackQuery, state:FSMContext):
+    await callback.message.delete_reply_markup()
+    session = Session()
+    result = session.query(table_division).filter(table_division.c.Division.contains("Проектный офис")).order_by(table_division.c.Division).first()
+    print(result)
+    result_Post = session.query(table_post).filter(table_post.c.ID_Division == int(result.id)).all()
+    await state.update_data(search_division=int(result.id))
+    await callback.message.answer(
+        "Вы выбрали <b>Проектный офис</b>",
+        reply_markup=reply.cancel
+    )
+    text = "<b>Введите должность из списка</b>\n"
+    for row in result_Post:
+        text += f"{row.Position}\n"
+    await callback.message.answer(text)
+    session.close()
+    await state.set_state(Employee.search_post)
 
 
 @user_private_router.callback_query(F.data.startswith("section_division"))
@@ -171,6 +193,7 @@ async def department_divis(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     session = Session()
     result = session.query(table_division).filter(table_division.c.Division.contains("Отдел")).order_by(table_division.c.Division).all()
+    print(result)
     await state.update_data(division_input="Отдел")
 
     text = "<b>Введите подразделение из списка</b>\n"
@@ -189,6 +212,7 @@ async def department_divis(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     session = Session()
     result = session.query(table_division).filter(table_division.c.Division.contains("Отдел")).order_by(table_division.c.Division).all()
+    print(result)
     await state.update_data(division_input="Отдел")
 
     text = "<b>Введите подразделение из списка</b>\n"
@@ -207,6 +231,7 @@ async def department_divis(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     session = Session()
     result = session.query(table_division).filter(table_division.c.Division.contains("Сектор")).order_by(table_division.c.Division).all()
+    print(result)
     await state.update_data(division_input="Сектор")
     await callback.message.answer(
         "Вы выбрали <b>Сектор</b>",
@@ -224,6 +249,7 @@ async def department_divis(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     session = Session()
     result = session.query(table_division).filter(table_division.c.Division.contains("Управление")).order_by(table_division.c.Division).all()
+    print(result)
     await state.update_data(division_input="Управление")
     await callback.message.answer(
         "Вы выбрали <b>Управление</b>",
@@ -245,6 +271,7 @@ async def depatr_divis(message:Message, state:FSMContext):
     division_input = user_data.get('division_input')
     session = Session()
     result = session.query(table_division).filter(table_division.c.Division == message.text, table_division.c.Division.contains(division_input)).first()
+    print(result)
     if result:    
         result_Post = session.query(table_post).filter(table_post.c.ID_Division == int(result.id)).all()
         await state.update_data(search_division=int(result.id))
@@ -260,6 +287,7 @@ async def depatr_divis(message:Message, state:FSMContext):
             await state.set_state(Employee.search_post)
             session.close()        
     else:
+        print('d')
         await message.answer(
             "Совпадения не найдены!"
         )
@@ -281,6 +309,7 @@ async def cmd_output(message: Message, state: FSMContext):
     session = Session()
     result = session.query(table_post).filter(table_post.c.Position == message.text, table_post.c.ID_Division == division).first()
     if result:
+        print(result)
         await state.update_data(search_post=message.text)       
         result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
         await message.answer(
@@ -289,6 +318,7 @@ async def cmd_output(message: Message, state: FSMContext):
             f"<b>Подразделение: </b>{result_Division.Division}\n"
             f"<b>Должность:</b> {result.Position}\n",
         )
+        print(search_change)
         if request_change == "заявка на перевод" and search_change == False:
             await message.answer(
             "Введите <b>дату конца Испытательного Срока</b>",
@@ -433,6 +463,7 @@ async def choice_employee(callback: types.CallbackQuery, state: FSMContext):
 
 @user_private_router.channel_post(F.text ==  "Сотрудник успешно изменен!")
 async def search_cmd(message:Message, state:FSMContext):
+    print("d")
     data = await state.get_data()
     request_change = data.get('request')
     if request_change == "заявка на перевод":

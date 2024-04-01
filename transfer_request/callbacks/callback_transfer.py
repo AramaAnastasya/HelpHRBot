@@ -169,7 +169,9 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
             text =  f"<b>Заявка на перевод:</b>\n<b>Номер заявки: </b>{new_id}\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
-            text += f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>"        
+            text += f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}"        
+            await bot.send_message(existing_record_HR.id_telegram,
+                                   f"<b>🔔Вам поступила новая заявка</b>")
             await bot.send_message(existing_record_HR.id_telegram,  text,
                                 parse_mode="HTML", reply_markup=send_transfer)
         else:
@@ -194,7 +196,9 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
             text =  f"<b>Заявка на перевод:</b>\n<b>Номер заявки: </b>{new_id}\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
-            text += f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>"        
+            text += f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}"        
+            await bot.send_message(existing_record_HR.id_telegram,
+                                   f"<b>🔔Вам поступила новая заявка</b>")
             await bot.send_message(existing_record_HR.id_telegram,  text,
                                 parse_mode="HTML", reply_markup=send_transfer)
             
@@ -250,15 +254,13 @@ async def unwrap_message_app(call: types.CallbackQuery, bot: Bot, state: FSMCont
     else:
         post_info = empl_id.Position
 
-    data = await state.get_data()
-    unwrap = data.get('unwrap')
- 
-    if unwrap == True:
+    if id_info.Date_planned_deadline != None:
         reply_markup = send_transferAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
     else:
         reply_markup = send_transfer
         date_planned = ""
+
     init_info = session.query(table).filter(table.c.id == number_init).first()
     surname_init = init_info.Surname
     name_init = init_info.Name
@@ -286,7 +288,7 @@ async def unwrap_message_app(call: types.CallbackQuery, bot: Bot, state: FSMCont
                                     f"<b>Инициатор:</b> {surname_init} {name_init[0]}. {middle_init[0]}.\n"
                                     f"<b>Сотрудник:</b> {fullname_employee}, {divis_info}, {post_info}\n"
                                     f"<b>Дата конца Испытательного Срока:</b> {deadline_prob}.\n"
-                                    f"<b>Дата: {date_info}</b>"
+                                    f"<b>Дата:</b> {date_info}"
                                     f"{date_planned}", 
                                     parse_mode="HTML", reply_markup=reply_markup)
         # Обновляем состояние сообщения в "second"
@@ -305,7 +307,7 @@ async def unwrap_message_app(call: types.CallbackQuery, bot: Bot, state: FSMCont
                                     f"<b>Сотрудник: </b>{fullname_employee}\n{divis_info}\n{post_info}\n"
                                     f"<b>Дата конца Испытательного Срока: </b>{deadline_prob}\n"
                                     f"{text}"
-                                    f"<b>Дата: {date_info}</b>"
+                                    f"<b>Дата:</b> {date_info}"
                                     f"{date_planned}", 
                                     parse_mode="HTML", reply_markup=reply_markup)
         # Возвращаем состояние сообщения к "first"

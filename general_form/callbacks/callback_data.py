@@ -85,8 +85,11 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
         session.execute(
             insert(application).values(application_data)
         )
+        await state.update_data(unwrap = False)
         await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
         await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
+        await bot.send_message(existing_record_HR.id_telegram,
+                                   f"<b>🔔Вам поступила новая заявка</b>")
         await bot.send_message(existing_record_HR.id_telegram, 
                             f"<b>Заявка общая:</b>\n"
                             f"<b>Номер заявки: </b>{new_id}\n"
@@ -103,7 +106,7 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
 
 
 message_states = {}
-@router.callback_query(F.data =='unwrap')
+@router.callback_query(F.data =='unwrap_send')
 async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     session = Session()
 
@@ -134,14 +137,11 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
     email_init = init_info.Email
     phone_init = init_info.Phone_number
 
-    data = await state.get_data()
-    unwrap = data.get('unwrap')
- 
-    if unwrap == True:
+    if id_info.Date_planned_deadline != None:
         reply_markup = sendAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
     else:
-        reply_markup = sendquiz
+        reply_markup = send
         date_planned = ""
 
     if msg_id not in message_states:
@@ -220,12 +220,14 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
         await state.update_data(unwrap = False)
         await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
         await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
+        await bot.send_message(existing_record_HR.id_telegram,
+                                   f"<b>🔔Вам поступила новая заявка</b>")
         await bot.send_message(existing_record_HR.id_telegram, 
                             f"<b>Заявка вопроса:</b>\n"
                             f"<b>Номер заявки: </b>{new_id}\n"
                             f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}\n"
                             f"<b>Суть вопроса: </b>{quiz_data}\n"
-                            f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", parse_mode="HTML", reply_markup=sendquiz)   
+                            f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", parse_mode="HTML", reply_markup=sendquiz)   
 
         session.commit()
         await call.message.edit_reply_markup()
@@ -264,16 +266,15 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
     position_init = init_info.Position
     email_init = init_info.Email
     phone_init = init_info.Phone_number
-
-    data = await state.get_data()
-    unwrap = data.get('unwrap')
  
-    if unwrap == True:
-        reply_markup = sendquizAct
-        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    else:
+    if id_info.Date_planned_deadline == None:
         reply_markup = sendquiz
         date_planned = ""
+    else:
+        reply_markup = sendquizAct
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+
+
     if msg_id not in message_states_quiz:
         # Если состояния сообщения нет, устанавливаем его в "second"
         message_states_quiz[msg_id] = "second"

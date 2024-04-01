@@ -45,7 +45,7 @@ async def start_cmd(message:Message, state: FSMContext):
 @user_private_router.message((F.text.lower() == "подать заявку"))
 async def menu_cmd(message: types.Message):
     await message.answer(
-        "Выберите вид заявки.",
+        "Выберите вид заявки",
         reply_markup=reply.request
     )
 

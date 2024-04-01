@@ -58,7 +58,7 @@ async def go_app_transf(callback: types.CallbackQuery, bot: Bot, state:FSMContex
     await callback.message.edit_reply_markup()
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None, table_application.c.ID_Class_application == 1).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None, table_application.c.ID_Class_application == 1).order_by(table_application.c.Date_planned_deadline).all()
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
@@ -96,7 +96,7 @@ async def go_app_zp(callback: types.CallbackQuery, state:FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None, table_application.c.ID_Class_application == 3).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None, table_application.c.ID_Class_application == 3).order_by(table_application.c.Date_planned_deadline).all()
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
@@ -145,7 +145,7 @@ async def go_app_diff(callback: types.CallbackQuery, state:FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None, table_application.c.ID_Class_application == 2).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None, table_application.c.ID_Class_application == 2).order_by(table_application.c.Date_planned_deadline).all()
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
@@ -195,7 +195,7 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None, table_application.c.ID_Class_application == 4).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None, table_application.c.ID_Class_application == 4).order_by(table_application.c.Date_planned_deadline).all()
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
@@ -208,7 +208,7 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                         f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
             reply_markup=get_callback_btns(
             btns={
-                f"Развернуть": f"unwrap",
+                f"Развернуть": f"unwrap_send",
                 f"Изменить дедлайн": f"select_{row.id}",
                 f"Отметить выполненной": f"select_{row.id}"
             }))
@@ -223,7 +223,7 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None).order_by(table_application.c.Date_planned_deadline).all()
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
@@ -333,7 +333,7 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                             f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
                 reply_markup=get_callback_btns(
                 btns={
-                    f"Развернуть": f"unwrap",
+                    f"Развернуть": f"unwrap_send",
                     f"Изменить дедлайн": f"select_{row.id}",
                     f"Отметить выполненной": f"select_{row.id}"
                 }))
@@ -350,7 +350,7 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline != None).all()
+    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline != None).order_by(table_question.c.Date_planned_deadline).all()
     for row in result_Quest:
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
         await callback.message.answer(
@@ -375,7 +375,7 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
 async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None).order_by(table_application.c.Date_planned_deadline).all()
     await state.update_data(unwrap = True)
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
@@ -486,11 +486,11 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                             f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
                 reply_markup=get_callback_btns(
                 btns={
-                    f"Развернуть": f"unwrap",
+                    f"Развернуть": f"unwrap_send",
                     f"Изменить дедлайн": f"select_{row.id}",
                     f"Отметить выполненной": f"select_{row.id}"
                 }))
-    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline != None).all()
+    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline != None).order_by(table_question.c.Date_planned_deadline).all()
     for row in result_Quest:
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
         await callback.message.answer(
@@ -533,7 +533,7 @@ async def go_app_transf(callback: types.CallbackQuery, bot: Bot, state:FSMContex
     await callback.message.edit_reply_markup()
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None, table_application.c.ID_Class_application == 1).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None, table_application.c.ID_Class_application == 1).order_by(table_application.c.Date_application).all()
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
@@ -542,11 +542,11 @@ async def go_app_transf(callback: types.CallbackQuery, bot: Bot, state:FSMContex
             result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
             await callback.message.answer(
                 f"<b>Номер заявки:</b> {row.id}\n"
-                f"<b>Заявка на перевод:</b>\n<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n <b>Дата подачи заявки:</b> {row.Date_application}", 
+                f"<b>Заявка на перевод:</b>\n<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата подачи заявки:</b> {row.Date_application}", 
                 reply_markup=get_callback_btns(
                 btns={
                     f"Развернуть": f"unwrap_trans",
-                    f"Поставить дедлайн": f"set_deadline"
+                    f"Установить дедлайн": f"set_deadline"
                 }))
         else:
             result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -556,7 +556,7 @@ async def go_app_transf(callback: types.CallbackQuery, bot: Bot, state:FSMContex
                 reply_markup=get_callback_btns(
                 btns={
                     f"Развернуть": f"unwrap_trans",
-                    f"Поставить дедлайн": f"set_deadline"
+                    f"Установить дедлайн": f"set_deadline"
                 }))
     # Закройте сессию
     session.close()
@@ -569,7 +569,7 @@ async def go_app_zp(callback: types.CallbackQuery, state:FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None, table_application.c.ID_Class_application == 3).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None, table_application.c.ID_Class_application == 3).order_by(table_application.c.Date_application).all()
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
@@ -583,11 +583,11 @@ async def go_app_zp(callback: types.CallbackQuery, state:FSMContext):
                     f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
                     f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
                     f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                    f"<b>Дата: {row.Date_application}</b>",
+                    f"<b>Дата:</b> {row.Date_application}",
                 reply_markup=get_callback_btns(
                 btns={
                     f"Развернуть": f"unwrap_zp",
-                    f"Поставить дедлайн": f"set_deadline"
+                    f"Установить дедлайн": f"set_deadline"
                 }))
         else:
             result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -598,11 +598,11 @@ async def go_app_zp(callback: types.CallbackQuery, state:FSMContext):
                     f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
                     f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
                     f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                    f"<b>Дата: {row.Date_application}</b>",
+                    f"<b>Дата:</b> {row.Date_application}",
                 reply_markup=get_callback_btns(
                 btns={
                     f"Развернуть": f"unwrap_zp",
-                    f"Поставить дедлайн": f"set_deadline"
+                    f"Установить дедлайн": f"set_deadline"
                 }))
     session.close()
 
@@ -614,7 +614,7 @@ async def go_app_diff(callback: types.CallbackQuery, state:FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None, table_application.c.ID_Class_application == 2).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None, table_application.c.ID_Class_application == 2).order_by(table_application.c.Date_application).all()
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
@@ -628,11 +628,11 @@ async def go_app_diff(callback: types.CallbackQuery, state:FSMContext):
                             f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
                             f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
                             f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                            f"<b>Дата: {row.Date_application}</b>", 
+                            f"<b>Дата:</b> {row.Date_application}", 
                 reply_markup=get_callback_btns(
                 btns={
                     f"Развернуть": f"unwrap_different",
-                    f"Поставить дедлайн": f"set_deadline"
+                    f"Установить дедлайн": f"set_deadline"
                 }))
         else:
             result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -643,11 +643,11 @@ async def go_app_diff(callback: types.CallbackQuery, state:FSMContext):
                             f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
                             f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
                             f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                            f"<b>Дата: {row.Date_application}</b>", 
+                            f"<b>Дата:</b> {row.Date_application}", 
                 reply_markup=get_callback_btns(
                 btns={
                     f"Развернуть": f"unwrap_different",
-                    f"Поставить дедлайн": f"set_deadline"
+                    f"Установить дедлайн": f"set_deadline"
                 }))    
     # Закройте сессию
     session.close()
@@ -660,7 +660,7 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None, table_application.c.ID_Class_application == 4).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None, table_application.c.ID_Class_application == 4).order_by(table_application.c.Date_application).all()
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
@@ -669,11 +669,11 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
             f"<b>Заявка общая:</b>\n"
                         f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
                         f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-                        f"<b>Дата: {row.Date_application}</b>",
+                        f"<b>Дата:</b> {row.Date_application}",
             reply_markup=get_callback_btns(
             btns={
-                f"Развернуть": f"unwrap",
-                f"Поставить дедлайн": f"set_deadline"
+                f"Развернуть": f"unwrap_send",
+                f"Установить дедлайн": f"set_deadline"
             }))
     # Закройте сессию
     session.close()
@@ -686,7 +686,7 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None).order_by(table_application.c.Date_application).all()
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
@@ -696,11 +696,11 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                 result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
                 await callback.message.answer(
                     f"<b>Номер заявки:</b> {row.id}\n"
-                    f"<b>Заявка на перевод:</b>\n<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n Дата: {row.Date_application}\n", 
+                    f"<b>Заявка на перевод:</b>\n<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата:</b> {row.Date_application}\n", 
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_trans",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
             else:
                 result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -710,7 +710,7 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_trans",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
         if(row.ID_Class_application == 2):
             if(row.ID_Employee == 1):
@@ -723,11 +723,11 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                                 f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
                                 f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
                                 f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                                f"<b>Дата: {row.Date_application}</b>", 
+                                f"<b>Дата:</b> {row.Date_application}", 
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_different",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
             else:
                 result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -738,11 +738,11 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                                 f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
                                 f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
                                 f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                                f"<b>Дата: {row.Date_application}</b>", 
+                                f"<b>Дата:</b> {row.Date_application}", 
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_different",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
         if(row.ID_Class_application == 3):
             if(row.ID_Employee == 1):
@@ -755,11 +755,11 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                         f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
                         f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
                         f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                         f"<b>Дата: {row.Date_application}</b>",
+                         f"<b>Дата:</b> {row.Date_application}",
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_zp",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
             else:
                 result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -770,11 +770,11 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                         f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
                         f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
                         f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                         f"<b>Дата: {row.Date_application}</b>",
+                         f"<b>Дата:</b> {row.Date_application}",
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_zp",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
         if(row.ID_Class_application == 4):
             await callback.message.answer(
@@ -782,11 +782,11 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                 f"<b>Заявка общая:</b>\n"
                             f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
                             f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-                            f"<b>Дата: {row.Date_application}</b>",
+                            f"<b>Дата:</b> {row.Date_application}",
                 reply_markup=get_callback_btns(
                 btns={
-                    f"Развернуть": f"unwrap",
-                    f"Поставить дедлайн": f"set_deadline"
+                    f"Развернуть": f"unwrap_send",
+                    f"Установить дедлайн": f"set_deadline"
                 }))
                 
     # Закройте сессию
@@ -801,7 +801,7 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline == None).all()
+    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline == None).order_by(table_question.c.Date_application).all()
     for row in result_Quest:
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
         await callback.message.answer(
@@ -809,11 +809,11 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
             f"<b>Заявка вопроса:</b>\n"
                         f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
                         f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-                        f"<b>Дата: {row.Date_application}</b>",
+                        f"<b>Дата:</b> {row.Date_application}",
             reply_markup=get_callback_btns(
             btns={
                 f"Развернуть": f"unwrapquiz",
-                f"Поставить дедлайн": f"set_deadline"
+                f"Установить дедлайн": f"set_deadline"
             }))
 
     # Закройте сессию
@@ -826,7 +826,7 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
-    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None).all()
+    result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None).order_by(table_application.c.Date_application).all()
     for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
@@ -836,11 +836,11 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                 result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
                 await callback.message.answer(
                     f"<b>Номер заявки:</b> {row.id}\n"
-                    f"<b>Заявка на перевод:</b>\n<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n Дата: {row.Date_application}\n", 
+                    f"<b>Заявка на перевод:</b>\n<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата:</b> {row.Date_application}\n", 
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_trans",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
             else:
                 result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -850,7 +850,7 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_trans",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
         if(row.ID_Class_application == 2):
             if(row.ID_Employee == 1):
@@ -863,11 +863,11 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                                 f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
                                 f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
                                 f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                                f"<b>Дата: {row.Date_application}</b>", 
+                                f"<b>Дата:</b> {row.Date_application}", 
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_different",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
             else:
                 result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -878,11 +878,11 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                                 f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
                                 f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
                                 f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                                f"<b>Дата: {row.Date_application}</b>", 
+                                f"<b>Дата:</b> {row.Date_application}", 
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_different",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
         if(row.ID_Class_application == 3):
             if(row.ID_Employee == 1):
@@ -895,11 +895,11 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                         f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
                         f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
                         f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                         f"<b>Дата: {row.Date_application}</b>",
+                         f"<b>Дата:</b> {row.Date_application}",
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_zp",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
             else:
                 result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -910,11 +910,11 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                         f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
                         f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
                         f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                         f"<b>Дата: {row.Date_application}</b>",
+                         f"<b>Дата:</b> {row.Date_application}",
                     reply_markup=get_callback_btns(
                     btns={
                         f"Развернуть": f"unwrap_zp",
-                        f"Поставить дедлайн": f"set_deadline"
+                        f"Установить дедлайн": f"set_deadline"
                     }))
         if(row.ID_Class_application == 4):
             await callback.message.answer(
@@ -922,14 +922,14 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                 f"<b>Заявка общая:</b>\n"
                             f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
                             f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-                            f"<b>Дата: {row.Date_application}</b>",
+                            f"<b>Дата:</b> {row.Date_application}",
                 reply_markup=get_callback_btns(
                 btns={
-                    f"Развернуть": f"unwrap",
-                    f"Поставить дедлайн": f"set_deadline"
+                    f"Развернуть": f"unwrap_send",
+                    f"Установить дедлайн": f"set_deadline"
                 }))
             
-    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline == None).all()
+    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline == None).order_by(table_question.c.Date_application).all()
     for row in result_Quest:
         result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
         await callback.message.answer(
@@ -937,11 +937,11 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
             f"<b>Заявка вопроса:</b>\n"
                         f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
                         f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-                        f"<b>Дата: {row.Date_application}</b>",
+                        f"<b>Дата:</b> {row.Date_application}",
             reply_markup=get_callback_btns(
             btns={
                 f"Развернуть": f"unwrapquiz",
-                f"Поставить дедлайн": f"set_deadline"
+                f"Установить дедлайн": f"set_deadline"
             }))
 
     
