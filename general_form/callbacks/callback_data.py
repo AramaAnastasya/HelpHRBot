@@ -1,14 +1,18 @@
 from aiogram.fsm.context import FSMContext
 from aiogram import Router, F, Bot, types
 from aiogram.types import Message
-from general_form.keyboards.inline import yesno, hr, change, changequiz, yesnoquiz, hrquiz, send
+from aiogram.filters.callback_data import CallbackData
+from general_form.keyboards.inline import yesno, hr, change, changequiz, yesnoquiz, hrquiz
 from general_form.utils.states import Form
+from HR_employee.calendar import nav_cal_handler
 from keyboards.reply import cancel, main, start_kb
-from sqlalchemy import create_engine, MetaData, Table
+from general_form.keyboards.inline import send, sendquiz, sendquizAct, sendAct
+from sqlalchemy import create_engine, MetaData, Table, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import update
 from datetime import date
 from sqlalchemy import insert
+import re
 
 router = Router()
 
@@ -58,7 +62,10 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     user_id_str = str(user_id)  
 
     user_info = session.query(table).filter(table.c.id_telegram == user_id_str).first()
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()
     if user_info:
+        last_id = session.query(func.max(application.c.id)).scalar()
+        new_id = last_id + 1
        # Получение данных из состояний
         data = await state.get_data()
 
@@ -80,19 +87,99 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
         )
         await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
         await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
-        await bot.send_message(id_HR, 
+        await bot.send_message(existing_record_HR.id_telegram, 
                             f"<b>Заявка общая:</b>\n"
+                            f"<b>Номер заявки: </b>{new_id}\n"
                             f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
                             f"<b>Суть обращения: </b>{essence_data}\n"
-                            f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", 
-                            parse_mode="HTML", reply_markup=send)
-        
+                            f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", 
+                            parse_mode="HTML", reply_markup=send)       
         session.commit()
         await call.message.edit_reply_markup()
         await state.clear()
     else:
         await bot.send_message(call.from_user.id, "Ошибка в формировании заявки.")
         await bot.send_message(call.from_user.id, "Пройдите авторизацию повторно", reply_markup=start_kb)
+
+
+message_states = {}
+@router.callback_query(F.data =='unwrap')
+async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext):
+    session = Session()
+
+
+    today = date.today()
+    msg_id = call.message.message_id
+    message_text = call.message.text
+
+    # Регулярное выражение для поиска числа после строки "Номер заявки:"
+    pattern = r"Номер заявки:\s*(\d+)"
+
+    # Применяем регулярное выражение к сообщению
+    match = re.search(pattern, message_text)
+    number_q = match.group(1)
+
+
+    id_info = session.query(application).filter(application.c.id == number_q).first()
+    essence_que = id_info.Essence_question
+    expect_res = id_info.Expected_result
+    date_info = id_info.Date_application
+    number_init = id_info.ID_Initiator
+    init_info = session.query(table).filter(table.c.id == number_init).first()
+    surname_init = init_info.Surname
+    name_init = init_info.Name
+    middle_init = init_info.Middle_name
+    division_init = init_info.Division
+    position_init = init_info.Position
+    email_init = init_info.Email
+    phone_init = init_info.Phone_number
+
+    data = await state.get_data()
+    unwrap = data.get('unwrap')
+ 
+    if unwrap == True:
+        reply_markup = sendAct
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    else:
+        reply_markup = sendquiz
+        date_planned = ""
+
+    if msg_id not in message_states:
+        # Если состояния сообщения нет, устанавливаем его в "second"
+        message_states[msg_id] = "second"
+
+    if msg_id in message_states and message_states[msg_id] == "first":
+        await bot.edit_message_text(chat_id=call.from_user.id,
+                                    message_id=msg_id,
+                                    text=                                   
+                                    f"<b>Заявка общая:</b>\n"
+                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                    f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
+                                    f"<b>Суть обращение: </b> {essence_que}\n"
+                                    f"<b>Дата: </b>{date_info}"
+                                    f"{date_planned}", 
+                                    reply_markup=reply_markup)
+        # Обновляем состояние сообщения в "second"
+        message_states[msg_id] = "second"
+    elif msg_id in message_states and message_states[msg_id] == "second":
+        await bot.edit_message_text(chat_id=call.from_user.id,
+                                    message_id=msg_id,
+                                    text=
+                                    f"<b>Заявка общая:</b>\n"
+                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                    f"<b>Инициатор: </b>{surname_init} {name_init} {middle_init}\n"
+                                    f"<b>Должность: </b>{division_init}\n"
+                                    f"<b>Подразделение: </b>{position_init}\n"
+                                    f"<b>Телефон: </b>{phone_init}\n"
+                                    f"<b>Почта: </b>{email_init}\n"
+                                    f"<b>Суть обращение: </b> {essence_que}\n"
+                                    f"<b>Ожидаемый результат: </b> {expect_res}\n"
+                                    f"<b>Дата: </b>{date_info}"
+                                    f"{date_planned}", 
+                                    reply_markup=reply_markup)
+        # Возвращаем состояние сообщения к "first"
+        message_states[msg_id] = "first"
+    
 
 @router.callback_query(F.data == 'nohr')
 async def nohr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
@@ -105,13 +192,14 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     session = Session()
     user_id = call.from_user.id
     user_id_str = str(user_id) 
-
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()
     user_info = session.query(table).filter(table.c.id_telegram == user_id_str).first()
     if user_info:
         # Получение данных из состояний
         data = await state.get_data()
 
-        # Определение, какие данные использовать
+        last_id = session.query(func.max(question.c.id)).scalar()
+        new_id = last_id + 1
 
         quiz_data = data.get('quiz')
 
@@ -129,14 +217,15 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
         session.execute(
             insert(question).values(application_data)
         )
-
+        await state.update_data(unwrap = False)
         await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
         await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
-        await bot.send_message(id_HR, 
+        await bot.send_message(existing_record_HR.id_telegram, 
                             f"<b>Заявка вопроса:</b>\n"
+                            f"<b>Номер заявки: </b>{new_id}\n"
                             f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}\n"
                             f"<b>Суть вопроса: </b>{quiz_data}\n"
-                            f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", parse_mode="HTML", reply_markup=send)   
+                            f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", parse_mode="HTML", reply_markup=sendquiz)   
 
         session.commit()
         await call.message.edit_reply_markup()
@@ -144,6 +233,102 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     else:
         await bot.send_message(call.from_user.id, "Ошибка в формировании заявки.")
         await bot.send_message(call.from_user.id, "Пройдите авторизацию повторно", reply_markup=start_kb)
+
+message_states_quiz = {}
+@router.callback_query(F.data =='unwrapquiz')
+async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext):
+    session = Session()
+
+    today = date.today()
+    msg_id = call.message.message_id
+    message_text = call.message.text
+
+    # Регулярное выражение для поиска числа после строки "Номер заявки:"
+    pattern = r"Номер заявки:\s*(\d+)"
+
+    # Применяем регулярное выражение к сообщению
+    match = re.search(pattern, message_text)
+    number_q = match.group(1)
+
+
+    id_info = session.query(question).filter(question.c.id == number_q).first()
+    essence_que = id_info.Essence_question
+    expect_res = id_info.Essence_result
+    date_info = id_info.Date_application
+    number_init = id_info.ID_Initiator
+    init_info = session.query(table).filter(table.c.id == number_init).first()
+    surname_init = init_info.Surname
+    name_init = init_info.Name
+    middle_init = init_info.Middle_name
+    division_init = init_info.Division
+    position_init = init_info.Position
+    email_init = init_info.Email
+    phone_init = init_info.Phone_number
+
+    data = await state.get_data()
+    unwrap = data.get('unwrap')
+ 
+    if unwrap == True:
+        reply_markup = sendquizAct
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    else:
+        reply_markup = sendquiz
+        date_planned = ""
+    if msg_id not in message_states_quiz:
+        # Если состояния сообщения нет, устанавливаем его в "second"
+        message_states_quiz[msg_id] = "second"
+
+    if msg_id in message_states_quiz and message_states_quiz[msg_id] == "first":
+        await bot.edit_message_text(chat_id=call.from_user.id,
+                                    message_id=msg_id,
+                                    text=                                   
+                                    f"<b>Заявка вопроса:</b>\n"
+                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                    f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
+                                    f"<b>Суть вопроса: </b>{essence_que}\n"
+                                    f"<b>Дата:</b> {date_info}"
+                                    f"{date_planned}", 
+                                    parse_mode="HTML", reply_markup=reply_markup)  
+        # Обновляем состояние сообщения в "second"
+        message_states_quiz[msg_id] = "second"
+    elif msg_id in message_states_quiz and message_states_quiz[msg_id] == "second":
+        await bot.edit_message_text(chat_id=call.from_user.id,
+                                    message_id=msg_id,
+                                    text=
+                                    f"<b>Заявка вопроса:</b>\n"
+                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                    f"<b>Инициатор: </b>{surname_init} {name_init} {middle_init}\n"
+                                    f"<b>Должность: </b>{division_init}\n"
+                                    f"<b>Подразделение: </b>{position_init}\n"
+                                    f"<b>Телефон: </b>{phone_init}\n"
+                                    f"<b>Почта: </b>{email_init}\n"
+                                    f"<b>Суть вопроса: </b> {essence_que}\n"
+                                    f"<b>Ожидаемый результат: </b> {expect_res}\n"
+                                    f"<b>Дата: </b>{date_info}"
+                                    f"{date_planned}",
+                                    reply_markup=reply_markup)
+        # Возвращаем состояние сообщения к "first"
+        message_states_quiz[msg_id] = "first"
+
+
+@router.callback_query(F.data =='set_deadlinequiz')
+async def deadline_message(call: types.CallbackQuery, bot: Bot, state:FSMContext):
+    session = Session()
+
+    msg_id = call.message.message_id
+    message_text = call.message.text
+
+    pattern = r"Номер заявки:\s*(\d+)"
+
+    match = re.search(pattern, message_text)
+    number_q = match.group(1)
+    await state.update_data(id_mess = msg_id)
+    await state.update_data(number_q = number_q)
+    await state.update_data(type_quiz = True)
+    print("зашел")
+    print(msg_id)
+    print(number_q)
+    await nav_cal_handler(call.message) 
 
 @router.callback_query(F.data == 'nohrquiz')
 async def nohr(call: types.CallbackQuery, bot: Bot, state: FSMContext):

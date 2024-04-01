@@ -15,7 +15,7 @@ division_cmd = InlineKeyboardMarkup(
             InlineKeyboardButton(text="Отдел", callback_data="section_division"),
             InlineKeyboardButton(text="Сектор", callback_data="sector_division")
         ],
-        [
+        [ 
             InlineKeyboardButton(text="Управление", callback_data="managment_division")
         ]
     ]
@@ -27,15 +27,5 @@ alphabet_division = InlineKeyboardMarkup(
             InlineKeyboardButton(text="A-Z, А-М", callback_data="alphabet_an"),
             InlineKeyboardButton(text="Н-Я", callback_data="alphabet_nya")
         ]
-    ]
-)
-
-send = InlineKeyboardMarkup(
-    inline_keyboard=[
-        [
-            InlineKeyboardButton(text="Развернуть", callback_data="qq"),
-            InlineKeyboardButton(text="Установка дедлайна", callback_data="qqq")
-        ]
-
     ]
 )

@@ -61,13 +61,44 @@ changequiz = InlineKeyboardMarkup(
     ]
 )
 
-
 send = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text="Развернуть", callback_data="qq"),
-            InlineKeyboardButton(text="Установка дедлайна", callback_data="qqq")
-        ]
+            InlineKeyboardButton(text="Развернуть", callback_data="unwrap"),
+            InlineKeyboardButton(text="Установка дедлайна", callback_data="set_deadline")
+        ] 
+    ]
+)
 
+sendAct = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Развернуть", callback_data="unwrap"),
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="update_deadline")
+        ],
+        [
+            InlineKeyboardButton(text="Отметить выполненной", callback_data="click")
+        ]
+    ]
+)
+
+sendquiz = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Развернуть", callback_data="unwrapquiz"),
+            InlineKeyboardButton(text="Установка дедлайна", callback_data="set_deadlinequiz")
+        ]
+    ]
+)
+
+sendquizAct = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Развернуть", callback_data="unwrapquiz"),
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="update_deadlinequiz")
+        ],
+        [
+            InlineKeyboardButton(text="Отметить выполненной", callback_data="click")
+        ]
     ]
 )

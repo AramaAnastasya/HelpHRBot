@@ -8,3 +8,4 @@ class taskZP(StatesGroup):
     proposed_amount_changed = State()  
     current_amount_changed = State()
     reasons_changed = State()
+    unwrap = State()

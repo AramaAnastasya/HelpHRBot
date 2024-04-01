@@ -1,4 +1,5 @@
 import os
+import re
 from aiogram import F, types, Router, Bot,Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.filters import CommandStart, Command, or_f
@@ -7,17 +8,20 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.utils.formatting import as_list, as_marked_section, Bold,Spoiler #Italic, as_numbered_list и тд 
-from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy import create_engine, MetaData, Table, func
 from sqlalchemy.orm import sessionmaker
+from HR_employee.calendar import nav_cal_handler
 from avtorization.utils.states import FSMAdmin
 from datetime import date
-from sqlalchemy import insert
+from sqlalchemy import insert, func
+import re
 from filters.chat_types import ChatTypeFilter
 
 from utils.states import Employee
 from task_ZP.utils.states import taskZP
 from keyboards import reply, inline
-from task_ZP.keyboards.inline import get_callback_btns
+from task_ZP.keyboards.inline import get_callback_btns, send_zp, send_zpAct
+
 
 user_private_router = Router()
 user_private_router.message.filter(ChatTypeFilter(["private"]))
@@ -61,9 +65,9 @@ async def agreement_ZP(message: types.Message, state: FSMContext):
             "Ваша заявка на согласование заработной платы:\n"
             f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
             f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
-            f"<b>Действующая сумма:</b> {current}.\n"
-            f"<b>Предлагаемая сумма:</b> {proposed}.\n"
-            f"<b>Причина перевода: </b>{reasons}.",
+            f"<b>Действующая сумма:</b> {current}\n"
+            f"<b>Предлагаемая сумма:</b> {proposed}\n"
+            f"<b>Причина перевода: </b>{reasons}",
             )
         else:
             result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
@@ -71,9 +75,9 @@ async def agreement_ZP(message: types.Message, state: FSMContext):
             "Ваша заявка на согласование заработной платы:\n"
             f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
             f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
-            f"<b>Действующая сумма:</b> {current}.\n"
-            f"<b>Предлагаемая сумма:</b> {proposed}.\n"
-            f"<b>Причина перевода: </b>{reasons}.",
+            f"<b>Действующая сумма:</b> {current}\n"
+            f"<b>Предлагаемая сумма:</b> {proposed}\n"
+            f"<b>Причина перевода: </b>{reasons}",
             )
         await message.answer(
             "Запрос введен верно?",
@@ -111,9 +115,12 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
     session = Session()
     user_id = callback.from_user.id
     user_id_str = str(user_id)  # Преобразуем user_id в строку
-    # 1. Получение id_iniziator из таблицы employee
 
     user_info = session.query(table).filter(table.c.id_telegram == user_id_str).first()
+
+    last_id = session.query(func.max(application.c.id)).scalar()
+    new_id = last_id + 1
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()
     if user_info:
         # Получение данных из состояний
         data = await state.get_data()
@@ -142,15 +149,16 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             )
             await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
-            await bot.send_message(id_HR, 
-                                f"<b>Заявка на согласование ЗП:</b>\n"
+            
+            await bot.send_message(existing_record_HR.id_telegram, 
+                                f"<b>Заявка на согласование заработной платы:</b>\n"
+                                f"<b>Номер заявки: </b>{new_id}\n"
                                 f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
-                                f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
-                                f"<b>Действующая сумма:</b> {current}.\n"
-                                f"<b>Предлагаемая сумма:</b> {proposed}.\n"
-                                f"<b>Причина перевода: </b>{reasons}.\n"
+                                f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}\n"
+                                f"<b>Действующая сумма:</b> {current}\n"
+                                f"<b>Предлагаемая сумма:</b> {proposed}\n"
                                 f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", 
-                                parse_mode="HTML", reply_markup=inline.send)
+                                parse_mode="HTML", reply_markup=send_zp)
         else:
             result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
             resultPositiong = session.query(table_position).filter(table_position.c.Position == str(post)).first()
@@ -173,21 +181,132 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             today = date.today()
             await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
-            await bot.send_message(id_HR, 
-                                f"<b>Заявка на согласование ЗП:</b>\n"
+            await bot.send_message(existing_record_HR.id_telegram, 
+                                 f"<b>Заявка на согласование заработной платы:</b>\n"
+                                f"<b>Номер заявки: </b>{new_id}\n"
                                 f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
-                                f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
-                                f"<b>Действующая сумма:</b> {current}.\n"
-                                f"<b>Предлагаемая сумма:</b> {proposed}.\n"
-                                f"<b>Причина перевода: </b>{reasons}.\n"
+                                f"<b>Сотрудник:</b> {name}\n"
+                                f"<b>Действующая сумма:</b> {current}\n"
+                                f"<b>Предлагаемая сумма:</b> {proposed}\n"
                                 f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>", 
-                                parse_mode="HTML", reply_markup=inline.send)
+                                parse_mode="HTML", reply_markup=send_zp)
         session.commit()
-        await callback.message.edit_reply_markup()
+
         await state.clear()
+        await state.update_data(unwrap = False)
     else:
         await bot.send_message(callback.from_user.id, "Ошибка в формировании заявки.")
         await bot.send_message(callback.from_user.id, "Пройдите авторизацию повторно", reply_markup=reply.start_kb)
+
+
+
+message_states_zp = {}
+@user_private_router.callback_query(F.data =='unwrap_zp')
+async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMContext):
+    session = Session()
+
+    msg_id = call.message.message_id
+    message_text = call.message.text
+
+    # Регулярное выражение для поиска числа после строки "Номер заявки:"
+    pattern = r"Номер заявки:\s*(\d+)"
+
+    # Применяем регулярное выражение к сообщению
+    match = re.search(pattern, message_text)
+    number_q = match.group(1)
+
+
+    id_info = session.query(application).filter(application.c.id == number_q).first()
+    current_amount = id_info.Current_amount
+    suggest_amount = id_info.Suggested_amount
+    reason_change = id_info.Cause
+    date_info = id_info.Date_application
+    number_init = id_info.ID_Initiator
+
+
+    id_empl = id_info.ID_Employee
+    empl_id = session.query(table).filter(table.c.id == id_empl).first()
+    if id_info.Full_name_employee:
+        fullname_employee = id_info.Full_name_employee
+    else:
+        fullname_employee = f"{empl_id.Surname} {empl_id.Name} {empl_id.Middle_name}"
+
+    if id_info.ID_Division:
+        id_divis = id_info.ID_Division
+        divis_id = session.query(table_division).filter(table_division.c.id == id_divis).first()
+        divis_info = divis_id.Division
+    else:
+        divis_info = empl_id.Division
+
+
+    if id_info.ID_Position:
+        id_post = id_info.ID_Position
+        post_id = session.query(table_position).filter(table_position.c.id == id_post).first()
+        post_info = post_id.Position
+    else:
+        post_info = empl_id.Position
+
+    data = await state.get_data()
+    unwrap = data.get('unwrap')
+ 
+    if unwrap == True:
+        reply_markup = send_zpAct
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    else:
+        reply_markup = send_zp
+        date_planned = ""
+    
+    init_info = session.query(table).filter(table.c.id == number_init).first()
+    surname_init = init_info.Surname
+    name_init = init_info.Name
+    middle_init = init_info.Middle_name
+    division_init = init_info.Division
+    position_init = init_info.Position
+    email_init = init_info.Email
+    phone_init = init_info.Phone_number
+
+
+
+    if msg_id not in message_states_zp:
+        # Если состояния сообщения нет, устанавливаем его в "second"
+        message_states_zp[msg_id] = "second"
+
+    if msg_id in message_states_zp and message_states_zp[msg_id] == "first":
+        await bot.edit_message_text(chat_id=call.from_user.id,
+                                    message_id=msg_id,
+                                    text=                                   
+                                    f"<b>Заявка на согласование заработной платы:</b>\n"
+                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                    f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
+                                    f"<b>Сотрудник:</b> {fullname_employee}\n"
+                                    f"<b>Действующая сумма:</b> {current_amount}\n"
+                                    f"<b>Предлагаемая сумма:</b> {suggest_amount}\n"
+                                    f"<b>Дата: {date_info}</b>"
+                                    f"{date_planned}", 
+                                    parse_mode="HTML", reply_markup=reply_markup)
+        # Обновляем состояние сообщения в "second"
+        message_states_zp[msg_id] = "second"
+    elif msg_id in message_states_zp and message_states_zp[msg_id] == "second":
+        await bot.edit_message_text(chat_id=call.from_user.id,
+                                    message_id=msg_id,
+                                    text=
+                                    f"<b>Заявка на согласование заработной платы:</b>\n"
+                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                    f"<b>Инициатор: </b>{surname_init} {name_init} {middle_init}\n"
+                                    f"<b>Должность: </b>{division_init}\n"
+                                    f"<b>Подразделение: </b>{position_init}\n"
+                                    f"<b>Телефон: </b>{phone_init}\n"
+                                    f"<b>Почта: </b>{email_init}\n"
+                                    f"<b>Сотрудник:</b> {fullname_employee}\n{divis_info}\n{post_info}\n"
+                                    f"<b>Действующая сумма:</b> {current_amount}\n"
+                                    f"<b>Предлагаемая сумма:</b> {suggest_amount}\n"
+                                    f"<b>Причина перевода: </b>{reason_change}\n"
+                                    f"<b>Дата: {date_info}</b>"
+                                    f"{date_planned}", 
+                                    parse_mode="HTML", reply_markup=reply_markup)
+        # Возвращаем состояние сообщения к "first"
+        message_states_zp[msg_id] = "first"
+
 
 
 @user_private_router.callback_query(F.data.startswith("stop_app"))

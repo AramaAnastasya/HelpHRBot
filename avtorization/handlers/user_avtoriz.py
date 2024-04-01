@@ -73,7 +73,7 @@ async def cmd_is(message: types.Message, state: FSMContext):
             session.commit()
             await state.clear()
             await message.reply(f"Вы успешно авторизованы!")
-            await message.answer("Выберите тип обращения.", reply_markup=reply.main)           
+            await message.answer("Выберите тип обращения", reply_markup=reply.main)           
         else:
             await message.reply("Ошибка авторизации. Пожалуйста, отправьте свой контактный номер телефона.")
     else:
@@ -97,7 +97,7 @@ async def cmd_is(message: types.Message, state: FSMContext):
 
                 await state.clear()
                 await message.reply(f"Вы успешно авторизованы!")
-                await message.answer("Выберите тип обращения.", reply_markup=reply.main)
+                await message.answer("Выберите тип обращения", reply_markup=reply.main)
             else:
                 await message.reply("Ошибка авторизации. Пожалуйста, отправьте свой контактный номер телефона.")
         elif existing_record_HR:

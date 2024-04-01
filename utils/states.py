@@ -14,3 +14,6 @@ class Employee(StatesGroup):
     search = State()
     search_change = State()
     division_input = State()
+    id_mess = State()
+    number_q = State()
+    type_quiz = State()

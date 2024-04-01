@@ -6,7 +6,8 @@ from aiogram.fsm.state import StatesGroup, State, default_state
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.formatting import as_list, as_marked_section, Bold,Spoiler #Italic, as_numbered_list и тд 
 from aiogram.types import Message
-
+from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy.orm import sessionmaker
 from avtorization.utils.states import FSMAdmin
 from filters.chat_types import ChatTypeFilter
 from keyboards import reply
@@ -17,6 +18,17 @@ user_private_router.message.filter(ChatTypeFilter(["private"]))
 
 bot = Bot(token=os.getenv('TOKEN'), parse_mode=ParseMode.HTML)
 dp = Dispatcher()
+
+from config import DATABASE_URI
+
+engine = create_engine(DATABASE_URI)
+
+# Создайте сессию для работы с базой данных
+Session = sessionmaker(bind=engine)
+metadata = MetaData()
+table_Employee = Table('employee', metadata, autoload_with=engine)
+table_application = Table('Applications', metadata, autoload_with=engine)
+table_question = Table('Question', metadata, autoload_with=engine)
 
 
 @user_private_router.message(CommandStart())
@@ -50,8 +62,97 @@ async def cmd_cancel(message: Message, state: FSMContext):
 
 @user_private_router.message(F.text.lower() == "← назад")
 async def cmd_cancel(message: Message, state: FSMContext):
-    await state.clear()
-    await message.answer(
-        text="Выберите нужную категорию",
-        reply_markup=reply.hr
-    )
+	await state.clear()
+	session = Session()
+	user_id = message.from_user.id
+	user_id_str = str(user_id) 
+	existing_record_HR = session.query(table_Employee).filter(table_Employee.c.Surname == "Минин", table_Employee.c.Name == "Вася", table_Employee.c.Middle_name == "роз").first()
+	if user_id_str == existing_record_HR.id_telegram:
+		await message.answer(
+        	text="Выберите нужную категорию",
+        	reply_markup=reply.hr
+    	)
+	else:
+		await message.answer(
+        	text="Выберите тип обращения",
+        	reply_markup=reply.main
+    	)
+
+
+@user_private_router.message(F.text.lower() == "отправленные заявки")
+async def transfer_cmd(message: types.Message):
+
+	print(message.from_user.id)
+	session = Session()
+	#поиск Id пользователя
+	userData = session.query(table_Employee).filter(table_Employee.c.id_telegram == str(message.from_user.id)).first()
+	# userData 'то массив с данными пользователя surname = userData[2]
+
+
+	userId = userData[1]
+	print(userId)
+	if userId == None:
+		await message.answer('Пользователь не найден', reply_markup=reply.back)
+		return
+	
+	#Массив с заявками
+	aplikations = session.query(table_application).filter(table_application.c.ID_Initiator == userId).order_by(table_application.c.id).all()	
+	
+	questions = session.query(table_question).filter(table_question.c.ID_Initiator == userId).order_by(table_question.c.id).all()	
+
+	firstName = userData[3][:1]
+	MidName = userData[4][:1]
+	# цикл берет отдельную заявку
+	for item in aplikations:
+		# item - одна заявка, item это массив с данными
+		
+		print(item)
+
+		
+		tempText = ''
+		if item[3] == 4:
+			tempText+=f'<b>Общая заявка:</b>\n'
+			tempText+=f'<b>Номер заявки:</b> {item[0]}\n'
+			tempText+=f'<b>Инициатор:</b> {userData[2]} {MidName}. {firstName}. \n'
+			tempText+=f'<b>Суть:</b> {item[6]}\n'
+			tempText+=f'<b>Дата:</b> {item[18]}'
+
+		if item[3] == 1:
+			tempText+=f'<b>Заявка на перевод:</b>\n'
+			tempText+=f'<b>Номер заявки:</b> {item[0]}\n'
+			tempText+=f'<b>Инициатор:</b> {userData[2]} {MidName}. {firstName}. \n'
+			tempText+=f'<b>Сотрудник:</b> {userData[2]} {userData[3]} {userData[4]}, {userData[5]}, {userData[6]}\n'
+			tempText+=f'<b>Дата конца испытательного срока:</b> {item[4]}\n'
+			tempText+=f'<b>Дата:</b> {item[18]}'
+
+		if item[3] == 2:
+			tempText+=f'<b>Заявка на перевод на другой формат работы:</b>\n'
+			tempText+=f'<b>Номер заявки:</b> {item[0]}\n'
+			tempText+=f'<b>Инициатор:</b> {userData[2]} {MidName}. {firstName}. \n'
+			tempText+=f'<b>Сотрудник:</b> {userData[2]} {userData[3]} {userData[4]}, {userData[5]}, {userData[6]}\n'
+			tempText+=f'<b>Формат на данный момент:</b> {item[14]}\n'
+			tempText+=f'<b>Формат на переход:</b> {item[15]}\n'
+			tempText+=f'<b>Дата:</b> {item[18]}'
+
+		if item[3] == 3:
+			tempText+=f'<b>Заявка на согласование заработной платы:</b>\n'
+			tempText+=f'<b>Номер заявки:</b> {item[0]}\n'
+			tempText+=f'<b>Инициатор:</b> {userData[2]} {MidName}. {firstName}. \n'
+			tempText+=f'<b>Сотрудник:</b> {userData[2]} {userData[3]} {userData[4]}, {userData[5]}, {userData[6]}\n'
+			tempText+=f'<b>Действующая сумма:</b> {item[12]}\n'
+			tempText+=f'<b>Предлагаемая сумма:</b> {item[11]}\n'
+			tempText+=f'<b>Дата:</b> {item[18]}'
+
+		await message.answer(tempText, reply_markup=reply.back)
+
+
+	for quwst in questions:
+		tempText = ''
+		tempText+=f'<b>Общий вопрос:</b>\n'
+		tempText+=f'<b>Номер заявки:</b> {quwst[0]}\n'
+		tempText+=f'<b>Инициатор:</b> {userData[2]} {MidName}. {firstName}. \n'
+		tempText+=f'<b>Суть:</b> {quwst[3]}\n'
+		tempText+=f'<b>Дата:</b> {quwst[5]}'
+
+
+		await message.answer(tempText, reply_markup=reply.back)

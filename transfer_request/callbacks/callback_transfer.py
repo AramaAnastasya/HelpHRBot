@@ -8,18 +8,20 @@ from aiogram.filters import StateFilter
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.utils.formatting import as_list, as_marked_section, Bold,Spoiler #Italic, as_numbered_list и тд 
 from aiogram.types import Message
-from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy import create_engine, MetaData, Table, func
 from sqlalchemy.orm import sessionmaker
 from avtorization.utils.states import FSMAdmin
 from datetime import date
-from sqlalchemy import insert
+from sqlalchemy import insert, func
+import re
+from HR_employee.calendar import nav_cal_handler
 
 from filters.chat_types import ChatTypeFilter
 
 from utils.states import Employee
 from transfer_request.utils.states import transferRequest
 from keyboards import reply, inline
-from transfer_request.keyboards.inline import get_callback_btns
+from transfer_request.keyboards.inline import get_callback_btns, send_transfer, send_transferAct
 
 user_private_router = Router()
 user_private_router.message.filter(ChatTypeFilter(["private"]))
@@ -131,10 +133,11 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
     session = Session()
     user_id = callback.from_user.id
     user_id_str = str(user_id) 
-
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()
     user_info = session.query(table).filter(table.c.id_telegram == user_id_str).first()
     if user_info:
-
+        last_id = session.query(func.max(application.c.id)).scalar()
+        new_id = last_id + 1
         data = await state.get_data()
         search_bd = data.get('search_bd')
         is_s = data.get('is_staff')
@@ -150,7 +153,6 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
                 due_date = due_date_list[i]
                 result = results_list[i]
                 goals_IS += f"<b>Цель {i + 1}:</b> {goal}\\n<b>Срок исполнения:</b> {due_date}\\n<b>Ожидаемый результат:</b> {result}\\n"    
-        print(goals_IS)
         if search == False:
             result = session.query(table).filter(table.c.id == search_bd).first()
             application_data = {
@@ -166,15 +168,10 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             )
             await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
-            text =  f"<b>Заявка на перевод:</b>\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
-
-            for i, goal in enumerate(goals_list):
-                due_date = due_date_list[i]
-                result = results_list[i]
-                text += f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}\n"    
+            text =  f"<b>Заявка на перевод:</b>\n<b>Номер заявки: </b>{new_id}\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
             text += f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>"        
-            await bot.send_message(id_HR, text,
-                                parse_mode="HTML", reply_markup=inline.send)
+            await bot.send_message(existing_record_HR.id_telegram,  text,
+                                parse_mode="HTML", reply_markup=send_transfer)
         else:
             result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
             resultPositiong = session.query(table_position).filter(table_position.c.Position == str(post)).first()
@@ -196,21 +193,124 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             today = date.today()
             await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
-            text =  f"<b>Заявка на перевод:</b>\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
-            for i, goal in enumerate(goals_list):
-                due_date = due_date_list[i]
-                result = results_list[i]
-                text += f"<b>Цель {i + 1}:</b> {goal}\n<b>Срок исполнения:</b> {due_date}\n<b>Ожидаемый результат:</b> {result}\n" 
+            text =  f"<b>Заявка на перевод:</b>\n<b>Номер заявки: </b>{new_id}\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
             text += f"<b>Дата: {today.strftime('%Y-%m-%d')}</b>"        
-            await bot.send_message(id_HR, text,
-                                parse_mode="HTML", reply_markup=inline.send)
+            await bot.send_message(existing_record_HR.id_telegram,  text,
+                                parse_mode="HTML", reply_markup=send_transfer)
             
         session.commit()
-        await callback.message.edit_reply_markup()
         await state.clear()
+        await state.update_data(unwrap = False)
     else:
         await bot.send_message(callback.from_user.id, "Ошибка в формировании заявки.")
         await bot.send_message(callback.from_user.id, "Пройдите авторизацию повторно", reply_markup=reply.start_kb)
+
+
+
+message_states_app = {}
+@user_private_router.callback_query(F.data =='unwrap_trans')
+async def unwrap_message_app(call: types.CallbackQuery, bot: Bot, state: FSMContext):
+    session = Session()
+
+    msg_id = call.message.message_id
+    message_text = call.message.text
+
+    # Регулярное выражение для поиска числа после строки "Номер заявки:"
+    pattern = r"Номер заявки:\s*(\d+)"
+
+    # Применяем регулярное выражение к сообщению
+    match = re.search(pattern, message_text)
+    number_q = match.group(1)
+
+
+    id_info = session.query(application).filter(application.c.id == number_q).first()
+    deadline_prob = id_info.End_date_IS
+    goals_list = id_info.Goals_for_period_IS
+    number_init = id_info.ID_Initiator
+    date_info = id_info.Date_application
+
+    id_empl = id_info.ID_Employee
+    empl_id = session.query(table).filter(table.c.id == id_empl).first()
+    if id_info.Full_name_employee:
+        fullname_employee = id_info.Full_name_employee
+    else:
+        fullname_employee = f"{empl_id.Surname} {empl_id.Name} {empl_id.Middle_name}"
+
+    if id_info.ID_Division:
+        id_divis = id_info.ID_Division
+        divis_id = session.query(table_division).filter(table_division.c.id == id_divis).first()
+        divis_info = divis_id.Division
+    else:
+        divis_info = empl_id.Division
+
+    if id_info.ID_Position:
+        id_post = id_info.ID_Position
+        post_id = session.query(table_position).filter(table_position.c.id == id_post).first()
+        post_info = post_id.Position
+    else:
+        post_info = empl_id.Position
+
+    data = await state.get_data()
+    unwrap = data.get('unwrap')
+ 
+    if unwrap == True:
+        reply_markup = send_transferAct
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    else:
+        reply_markup = send_transfer
+        date_planned = ""
+    init_info = session.query(table).filter(table.c.id == number_init).first()
+    surname_init = init_info.Surname
+    name_init = init_info.Name
+    middle_init = init_info.Middle_name
+    division_init = init_info.Division
+    position_init = init_info.Position
+    email_init = init_info.Email
+    phone_init = init_info.Phone_number
+ 
+    goals_list = goals_list.split("\\n")
+    text = ""
+    for i in enumerate(goals_list):
+        text += f"{i[1]}\n" 
+    print(goals_list)
+    if msg_id not in message_states_app:
+        # Если состояния сообщения нет, устанавливаем его в "second"
+        message_states_app[msg_id] = "second"
+
+    if msg_id in message_states_app and message_states_app[msg_id] == "first":
+        await bot.edit_message_text(chat_id=call.from_user.id,
+                                    message_id=msg_id,
+                                    text =  
+                                    f"<b>Заявка на перевод:</b>\n"
+                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                    f"<b>Инициатор:</b> {surname_init} {name_init[0]}. {middle_init[0]}.\n"
+                                    f"<b>Сотрудник:</b> {fullname_employee}, {divis_info}, {post_info}\n"
+                                    f"<b>Дата конца Испытательного Срока:</b> {deadline_prob}.\n"
+                                    f"<b>Дата: {date_info}</b>"
+                                    f"{date_planned}", 
+                                    parse_mode="HTML", reply_markup=reply_markup)
+        # Обновляем состояние сообщения в "second"
+        message_states_app[msg_id] = "second"
+    elif msg_id in message_states_app and message_states_app[msg_id] == "second":
+        await bot.edit_message_text(chat_id=call.from_user.id,
+                                    message_id=msg_id,
+                                    text=
+                                    f"<b>Заявка на перевод:</b>\n"
+                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                    f"<b>Инициатор: </b>{surname_init} {name_init} {middle_init}\n"
+                                    f"<b>Должность: </b>{division_init}\n"
+                                    f"<b>Подразделение: </b>{position_init}\n"
+                                    f"<b>Телефон: </b>{phone_init}\n"
+                                    f"<b>Почта: </b>{email_init}\n"
+                                    f"<b>Сотрудник: </b>{fullname_employee}\n{divis_info}\n{post_info}\n"
+                                    f"<b>Дата конца Испытательного Срока: </b>{deadline_prob}\n"
+                                    f"{text}"
+                                    f"<b>Дата: {date_info}</b>"
+                                    f"{date_planned}", 
+                                    parse_mode="HTML", reply_markup=reply_markup)
+        # Возвращаем состояние сообщения к "first"
+        message_states_app[msg_id] = "first"
+
 
 
 

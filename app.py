@@ -22,7 +22,7 @@ from general_form.callbacks import callback_data
 from different_format.handlers import user_diff_format
 from different_format.callbacks import callback_format
 
-from HR import hr
+from HR_employee import hr, calendar
 
 ALLOWED_UPDATES = ['message, edited_message']
 
@@ -42,7 +42,8 @@ dp.include_routers(
         callback_task_ZP.user_private_router,
         user_diff_format.router,
         callback_format.router, 
-        hr.user_private_router
+        hr.user_private_router,
+        calendar.user_private_router
     )
 
 async def main(): 

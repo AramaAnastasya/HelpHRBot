@@ -9,6 +9,9 @@ main = ReplyKeyboardMarkup(
         [
             KeyboardButton(text="Подать заявку"),
             KeyboardButton(text="Задать вопрос")
+        ],
+         [
+            KeyboardButton(text="Отправленные заявки")
         ]
     ],
     resize_keyboard=True, 

@@ -156,3 +156,24 @@ placewillkbedi = InlineKeyboardMarkup(
 
     ]
 )
+
+send_different = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Развернуть", callback_data="unwrap_different"),
+            InlineKeyboardButton(text="Установка дедлайна", callback_data="set_deadline")
+        ]
+    ]
+)
+
+send_differentAct = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Развернуть", callback_data="unwrap_different"),
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="update_deadline")
+        ],
+        [
+            InlineKeyboardButton(text="Отметить выполненной", callback_data="click")
+        ]
+    ]
+)
