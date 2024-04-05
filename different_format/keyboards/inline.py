@@ -170,7 +170,28 @@ send_differentAct = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="Развернуть", callback_data="unwrap_different"),
-            InlineKeyboardButton(text="Изменить дедлайн", callback_data="update_deadline")
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadline")
+        ],
+        [
+            InlineKeyboardButton(text="Отметить выполненной", callback_data="click")
+        ]
+    ]
+)
+
+send_different_d = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Свернуть", callback_data="unwrap_different"),
+            InlineKeyboardButton(text="Установка дедлайна", callback_data="set_deadline")
+        ]
+    ]
+)
+
+send_differentAct_d = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Свернуть", callback_data="unwrap_different"),
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadline")
         ],
         [
             InlineKeyboardButton(text="Отметить выполненной", callback_data="click")

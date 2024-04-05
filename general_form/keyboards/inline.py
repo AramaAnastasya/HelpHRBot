@@ -74,7 +74,28 @@ sendAct = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="Развернуть", callback_data="unwrap_send"),
-            InlineKeyboardButton(text="Изменить дедлайн", callback_data="update_deadline")
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadline")
+        ],
+        [
+            InlineKeyboardButton(text="Отметить выполненной", callback_data="click")
+        ]
+    ]
+)
+
+send_d = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Свернуть", callback_data="unwrap_send"),
+            InlineKeyboardButton(text="Установка дедлайна", callback_data="set_deadline")
+        ] 
+    ]
+)
+
+sendAct_d = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Свернуть", callback_data="unwrap_send"),
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadline")
         ],
         [
             InlineKeyboardButton(text="Отметить выполненной", callback_data="click")
@@ -95,10 +116,31 @@ sendquizAct = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="Развернуть", callback_data="unwrapquiz"),
-            InlineKeyboardButton(text="Изменить дедлайн", callback_data="update_deadlinequiz")
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadlinequiz")
         ],
         [
-            InlineKeyboardButton(text="Отметить выполненной", callback_data="click")
+            InlineKeyboardButton(text="Отметить выполненной", callback_data="clickquiz")
+        ]
+    ]
+)
+
+sendquiz_d = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Свернуть", callback_data="unwrapquiz"),
+            InlineKeyboardButton(text="Установка дедлайна", callback_data="set_deadlinequiz")
+        ]
+    ]
+)
+
+sendquizAct_d = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Свернуть", callback_data="unwrapquiz"),
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadlinequiz")
+        ],
+        [
+            InlineKeyboardButton(text="Отметить выполненной", callback_data="clickquiz")
         ]
     ]
 )

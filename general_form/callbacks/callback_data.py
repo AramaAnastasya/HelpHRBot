@@ -6,7 +6,7 @@ from general_form.keyboards.inline import yesno, hr, change, changequiz, yesnoqu
 from general_form.utils.states import Form
 from HR_employee.calendar import nav_cal_handler
 from keyboards.reply import cancel, main, start_kb
-from general_form.keyboards.inline import send, sendquiz, sendquizAct, sendAct
+from general_form.keyboards.inline import send, sendquiz, sendquizAct, sendAct, sendquizAct_d, send_d, sendAct_d, sendquiz_d
 from sqlalchemy import create_engine, MetaData, Table, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import update
@@ -39,7 +39,7 @@ async def yes(call: types.CallbackQuery, bot: Bot, state: FSMContext):
 
 @router.callback_query(F.data == 'no')
 async def no(call: types.CallbackQuery, bot: Bot, state: FSMContext):
-    await bot.send_message(call.from_user.id, "Выберите пункт для изменения:", reply_markup=change)
+    await bot.send_message(call.from_user.id, "Выберите пункт для изменения", reply_markup=change)
     await call.message.edit_reply_markup()
 
 
@@ -51,7 +51,7 @@ async def yes(call: types.CallbackQuery, bot: Bot, state: FSMContext):
 
 @router.callback_query(F.data == 'noquiz')
 async def no(call: types.CallbackQuery, bot: Bot, state: FSMContext):
-    await bot.send_message(call.from_user.id, "Выберите пункт для изменения:", reply_markup=changequiz)
+    await bot.send_message(call.from_user.id, "Выберите пункт для изменения", reply_markup=changequiz)
     await call.message.edit_reply_markup()
 
 @router.callback_query(F.data == 'yeshr')
@@ -85,13 +85,13 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
         session.execute(
             insert(application).values(application_data)
         )
-        await state.update_data(unwrap = False)
+
         await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
         await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
         await bot.send_message(existing_record_HR.id_telegram,
                                    f"<b>🔔Вам поступила новая заявка</b>")
         await bot.send_message(existing_record_HR.id_telegram, 
-                            f"<b>Заявка общая:</b>\n"
+                            f"<b>Заявка по общей форме</b>\n"
                             f"<b>Номер заявки: </b>{new_id}\n"
                             f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
                             f"<b>Суть обращения: </b>{essence_data}\n"
@@ -137,22 +137,28 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
     email_init = init_info.Email
     phone_init = init_info.Phone_number
 
-    if id_info.Date_planned_deadline != None:
-        reply_markup = sendAct
-        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    else:
-        reply_markup = send
-        date_planned = ""
-
     if msg_id not in message_states:
         # Если состояния сообщения нет, устанавливаем его в "second"
         message_states[msg_id] = "second"
+
+    if id_info.Date_planned_deadline != None and message_states[msg_id] == "first":
+        reply_markup = sendAct
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline != None and message_states[msg_id] == "second":   
+        reply_markup = sendAct_d
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline == None and message_states[msg_id] == "first":
+        reply_markup = send
+        date_planned = ""
+    else:
+        reply_markup = send_d
+        date_planned = ""
 
     if msg_id in message_states and message_states[msg_id] == "first":
         await bot.edit_message_text(chat_id=call.from_user.id,
                                     message_id=msg_id,
                                     text=                                   
-                                    f"<b>Заявка общая:</b>\n"
+                                    f"<b>Заявка по общей форме</b>\n"
                                     f"<b>Номер заявки: </b>{number_q}\n"
                                     f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
                                     f"<b>Суть обращение: </b> {essence_que}\n"
@@ -165,7 +171,7 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
         await bot.edit_message_text(chat_id=call.from_user.id,
                                     message_id=msg_id,
                                     text=
-                                    f"<b>Заявка общая:</b>\n"
+                                    f"<b>Заявка по общей форме</b>\n"
                                     f"<b>Номер заявки: </b>{number_q}\n"
                                     f"<b>Инициатор: </b>{surname_init} {name_init} {middle_init}\n"
                                     f"<b>Должность: </b>{division_init}\n"
@@ -223,9 +229,9 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
         await bot.send_message(existing_record_HR.id_telegram,
                                    f"<b>🔔Вам поступила новая заявка</b>")
         await bot.send_message(existing_record_HR.id_telegram, 
-                            f"<b>Заявка вопроса:</b>\n"
-                            f"<b>Номер заявки: </b>{new_id}\n"
-                            f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}\n"
+                            f"<b>Вопрос</b>\n"
+                            f"<b>Номер вопроса: </b>{new_id}\n"
+                            f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
                             f"<b>Суть вопроса: </b>{quiz_data}\n"
                             f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", parse_mode="HTML", reply_markup=sendquiz)   
 
@@ -246,7 +252,7 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
     message_text = call.message.text
 
     # Регулярное выражение для поиска числа после строки "Номер заявки:"
-    pattern = r"Номер заявки:\s*(\d+)"
+    pattern = r"Номер вопроса:\s*(\d+)"
 
     # Применяем регулярное выражение к сообщению
     match = re.search(pattern, message_text)
@@ -267,24 +273,31 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
     email_init = init_info.Email
     phone_init = init_info.Phone_number
  
-    if id_info.Date_planned_deadline == None:
-        reply_markup = sendquiz
-        date_planned = ""
-    else:
-        reply_markup = sendquizAct
-        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-
-
     if msg_id not in message_states_quiz:
         # Если состояния сообщения нет, устанавливаем его в "second"
         message_states_quiz[msg_id] = "second"
+
+
+    if id_info.Date_planned_deadline != None and message_states_quiz[msg_id] == "first":
+        reply_markup = sendquizAct
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline != None and message_states_quiz[msg_id] == "second":   
+        reply_markup = sendquizAct_d
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline == None and message_states_quiz[msg_id] == "first":
+        reply_markup = sendquiz
+        date_planned = ""
+    else:
+        reply_markup = sendquiz_d
+        date_planned = ""
+
 
     if msg_id in message_states_quiz and message_states_quiz[msg_id] == "first":
         await bot.edit_message_text(chat_id=call.from_user.id,
                                     message_id=msg_id,
                                     text=                                   
-                                    f"<b>Заявка вопроса:</b>\n"
-                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                    f"<b>Вопрос</b>\n"
+                                    f"<b>Номер вопроса: </b>{number_q}\n"
                                     f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
                                     f"<b>Суть вопроса: </b>{essence_que}\n"
                                     f"<b>Дата:</b> {date_info}"
@@ -296,8 +309,8 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
         await bot.edit_message_text(chat_id=call.from_user.id,
                                     message_id=msg_id,
                                     text=
-                                    f"<b>Заявка вопроса:</b>\n"
-                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                    f"<b>Вопрос</b>\n"
+                                    f"<b>Номер вопроса: </b>{number_q}\n"
                                     f"<b>Инициатор: </b>{surname_init} {name_init} {middle_init}\n"
                                     f"<b>Должность: </b>{division_init}\n"
                                     f"<b>Подразделение: </b>{position_init}\n"
@@ -319,7 +332,7 @@ async def deadline_message(call: types.CallbackQuery, bot: Bot, state:FSMContext
     msg_id = call.message.message_id
     message_text = call.message.text
 
-    pattern = r"Номер заявки:\s*(\d+)"
+    pattern = r"Номер вопроса:\s*(\d+)"
 
     match = re.search(pattern, message_text)
     number_q = match.group(1)
@@ -355,7 +368,7 @@ async def essenseedi2(message: Message, state: FSMContext):
         await state.update_data(essence = message.text)
         data = await state.get_data()
         await message.answer(
-                f"Ваша заявка:\n"
+                f"Ваша заявка по общей форме\n"
                 f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}\n"
                 f"<b>Суть обращения:</b> {data['essence']}\n"
                 f"<b>Ожидаемый результат:</b> {data['expect']}", parse_mode="HTML", reply_markup=cancel)
@@ -383,7 +396,7 @@ async def expectedi2(message: Message, state: FSMContext):
         await state.update_data(expect = message.text)
         data = await state.get_data()
         await message.answer(
-                f"Ваша заявка:\n"
+                f"Ваша заявка по общей форме\n"
                 f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}\n"
                 f"<b>Суть обращения:</b> {data['essence']}\n"
                 f"<b>Ожидаемый результат:</b> {data['expect']}", parse_mode="HTML", reply_markup=cancel)
@@ -421,7 +434,7 @@ async def quizedit2(message: Message, state: FSMContext):
         await state.update_data(quiz = message.text)
         data = await state.get_data()
         await message.answer(
-                f"Ваш вопрос:\n"
+                f"Ваш вопрос\n"
                 f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}\n"
                 f"<b>Суть вопроса:</b> {data['quiz']}\n"
                 f"<b>Ожидаемый результат:</b> {data['resquiz']}", parse_mode="HTML", reply_markup=cancel)
@@ -449,7 +462,7 @@ async def quizedit2(message: Message, state: FSMContext):
         await state.update_data(resquiz = message.text)
         data = await state.get_data()
         await message.answer(
-                f"Ваш вопрос:\n"
+                f"Ваш вопрос\n"
                 f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}\n"
                 f"<b>Суть вопроса:</b> {data['quiz']}\n"
                 f"<b>Ожидаемый результат:</b> {data['resquiz']}", parse_mode="HTML", reply_markup=cancel)

@@ -27,10 +27,32 @@ send_zpAct = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="Развернуть", callback_data="unwrap_zp"),
-            InlineKeyboardButton(text="Изменить дедлайн", callback_data="update_deadline")
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadline")
         ],
         [
             InlineKeyboardButton(text="Отметить выполненной", callback_data="click")
         ]
     ]
 )
+
+send_zp_d = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Свернуть", callback_data="unwrap_zp"),
+            InlineKeyboardButton(text="Установка дедлайна", callback_data="set_deadline")
+        ]
+    ]
+)
+
+send_zpAct_d = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Свернуть", callback_data="wrap_zp"),
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadline")
+        ],
+        [
+            InlineKeyboardButton(text="Отметить выполненной", callback_data="click")
+        ]
+    ]
+)
+

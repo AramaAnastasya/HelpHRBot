@@ -51,7 +51,7 @@ async def fill_expect(message: Message, state: FSMContext):
         await state.update_data(expect=message.text)
         data = await state.get_data()
         formatter_text = (
-            f"Ваша заявка:\n"
+            f"Ваша заявка по общей форме\n"
             f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
             f"<b>Суть обращения:</b> {data['essence']}\n"
             f"<b>Ожидаемый результат:</b> {data['expect']}"
@@ -92,7 +92,7 @@ async def fill_expect(message: Message, state: FSMContext):
         await state.update_data(resquiz=message.text)
         data = await state.get_data()
         formatter_text = (
-            f"Ваш вопрос:\n"
+            f"Ваш вопрос\n"
             f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
             f"<b>Суть вопроса:</b> {data['quiz']}\n"
             f"<b>Ожидаемый результат:</b> {data['resquiz']}")

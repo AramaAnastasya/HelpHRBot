@@ -20,7 +20,7 @@ from filters.chat_types import ChatTypeFilter
 from utils.states import Employee
 from task_ZP.utils.states import taskZP
 from keyboards import reply, inline
-from task_ZP.keyboards.inline import get_callback_btns, send_zp, send_zpAct
+from task_ZP.keyboards.inline import get_callback_btns, send_zp, send_zpAct, send_zpAct_d, send_zp_d
 
 
 user_private_router = Router()
@@ -62,7 +62,7 @@ async def agreement_ZP(message: types.Message, state: FSMContext):
     if resultInitiator:
         if search == False:
             await message.answer(
-            "Ваша заявка на согласование заработной платы:\n"
+            "Ваша заявка на согласование заработной платы\n"
             f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
             f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
             f"<b>Действующая сумма:</b> {current}\n"
@@ -72,7 +72,7 @@ async def agreement_ZP(message: types.Message, state: FSMContext):
         else:
             result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
             await message.answer(
-            "Ваша заявка на согласование заработной платы:\n"
+            "Ваша заявка на согласование заработной платы\n"
             f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
             f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
             f"<b>Действующая сумма:</b> {current}\n"
@@ -152,7 +152,7 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             await bot.send_message(existing_record_HR.id_telegram,
                                    f"<b>🔔Вам поступила новая заявка</b>")
             await bot.send_message(existing_record_HR.id_telegram, 
-                                f"<b>Заявка на согласование заработной платы:</b>\n"
+                                f"<b>Заявка на согласование заработной платы</b>\n"
                                 f"<b>Номер заявки: </b>{new_id}\n"
                                 f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
                                 f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}\n"
@@ -185,7 +185,7 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             await bot.send_message(existing_record_HR.id_telegram,
                                    f"<b>🔔Вам поступила новая заявка</b>")
             await bot.send_message(existing_record_HR.id_telegram, 
-                                 f"<b>Заявка на согласование заработной платы:</b>\n"
+                                 f"<b>Заявка на согласование заработной платы</b>\n"
                                 f"<b>Номер заявки: </b>{new_id}\n"
                                 f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
                                 f"<b>Сотрудник:</b> {name}\n"
@@ -249,13 +249,24 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
     else:
         post_info = empl_id.Position
 
-    if id_info.Date_planned_deadline != None:
+    if msg_id not in message_states_zp:
+        # Если состояния сообщения нет, устанавливаем его в "second"
+        message_states_zp[msg_id] = "second"
+
+    if id_info.Date_planned_deadline != None and message_states_zp[msg_id] == "first":
         reply_markup = send_zpAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    else:
+    elif id_info.Date_planned_deadline != None and message_states_zp[msg_id] == "second":   
+        reply_markup = send_zpAct_d
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline == None and message_states_zp[msg_id] == "first":
         reply_markup = send_zp
         date_planned = ""
-    
+    else:
+        reply_markup = send_zp_d
+        date_planned = "" 
+
+
     init_info = session.query(table).filter(table.c.id == number_init).first()
     surname_init = init_info.Surname
     name_init = init_info.Name
@@ -265,17 +276,11 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
     email_init = init_info.Email
     phone_init = init_info.Phone_number
 
-
-
-    if msg_id not in message_states_zp:
-        # Если состояния сообщения нет, устанавливаем его в "second"
-        message_states_zp[msg_id] = "second"
-
     if msg_id in message_states_zp and message_states_zp[msg_id] == "first":
         await bot.edit_message_text(chat_id=call.from_user.id,
                                     message_id=msg_id,
                                     text=                                   
-                                    f"<b>Заявка на согласование заработной платы:</b>\n"
+                                    f"<b>Заявка на согласование заработной платы</b>\n"
                                     f"<b>Номер заявки: </b>{number_q}\n"
                                     f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
                                     f"<b>Сотрудник:</b> {fullname_employee}\n"
@@ -290,7 +295,7 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
         await bot.edit_message_text(chat_id=call.from_user.id,
                                     message_id=msg_id,
                                     text=
-                                    f"<b>Заявка на согласование заработной платы:</b>\n"
+                                    f"<b>Заявка на согласование заработной платы</b>\n"
                                     f"<b>Номер заявки: </b>{number_q}\n"
                                     f"<b>Инициатор: </b>{surname_init} {name_init} {middle_init}\n"
                                     f"<b>Должность: </b>{division_init}\n"
@@ -320,7 +325,7 @@ async def stop_app(callback: types.CallbackQuery):
 async def no_app(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     await callback.message.answer(
-            "Что необходимо изменить?", 
+            "Выберите пункт для изменения", 
             reply_markup=get_callback_btns(
                 btns={
                     'Сотрудник': f'search_changed',

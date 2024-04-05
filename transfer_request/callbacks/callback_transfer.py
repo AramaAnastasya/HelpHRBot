@@ -21,7 +21,7 @@ from filters.chat_types import ChatTypeFilter
 from utils.states import Employee
 from transfer_request.utils.states import transferRequest
 from keyboards import reply, inline
-from transfer_request.keyboards.inline import get_callback_btns, send_transfer, send_transferAct
+from transfer_request.keyboards.inline import get_callback_btns, send_transfer, send_transferAct, send_transfer_d, send_transferAct_d
 
 user_private_router = Router()
 user_private_router.message.filter(ChatTypeFilter(["private"]))
@@ -68,7 +68,7 @@ async def staff_post(message: types.Message, state: FSMContext):
     if resultInitiator:
         if search == False:
             await message.answer(
-            "Ваша заявка на согласование заработной платы:\n"
+            "Ваша заявка на перевод\n"
             f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
             f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
             f"<b>Дата конца Испытательного Срока:</b> {is_s}."  
@@ -76,7 +76,7 @@ async def staff_post(message: types.Message, state: FSMContext):
         else:
             result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
             await message.answer(
-            "Ваша заявка на согласование заработной платы:\n"
+            "Ваша заявка на перевод\n"
             f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
             f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
             f"<b>Дата конца Испытательного Срока:</b> {is_s}."  
@@ -168,7 +168,7 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             )
             await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
-            text =  f"<b>Заявка на перевод:</b>\n<b>Номер заявки: </b>{new_id}\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
+            text =  f"<b>Заявка на перевод</b>\n<b>Номер заявки: </b>{new_id}\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
             text += f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}"        
             await bot.send_message(existing_record_HR.id_telegram,
                                    f"<b>🔔Вам поступила новая заявка</b>")
@@ -195,7 +195,7 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             today = date.today()
             await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
-            text =  f"<b>Заявка на перевод:</b>\n<b>Номер заявки: </b>{new_id}\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
+            text =  f"<b>Заявка на перевод</b>\n<b>Номер заявки: </b>{new_id}\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
             text += f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}"        
             await bot.send_message(existing_record_HR.id_telegram,
                                    f"<b>🔔Вам поступила новая заявка</b>")
@@ -254,11 +254,21 @@ async def unwrap_message_app(call: types.CallbackQuery, bot: Bot, state: FSMCont
     else:
         post_info = empl_id.Position
 
-    if id_info.Date_planned_deadline != None:
+    if msg_id not in message_states_app:
+        # Если состояния сообщения нет, устанавливаем его в "second"
+        message_states_app[msg_id] = "second"
+
+    if id_info.Date_planned_deadline != None and message_states_app[msg_id] == "first":
         reply_markup = send_transferAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    else:
+    elif id_info.Date_planned_deadline != None and message_states_app[msg_id] == "second":   
+        reply_markup = send_transferAct_d
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline == None and message_states_app[msg_id] == "first":
         reply_markup = send_transfer
+        date_planned = ""
+    else:
+        reply_markup = send_transfer_d
         date_planned = ""
 
     init_info = session.query(table).filter(table.c.id == number_init).first()
@@ -275,15 +285,13 @@ async def unwrap_message_app(call: types.CallbackQuery, bot: Bot, state: FSMCont
     for i in enumerate(goals_list):
         text += f"{i[1]}\n" 
     print(goals_list)
-    if msg_id not in message_states_app:
-        # Если состояния сообщения нет, устанавливаем его в "second"
-        message_states_app[msg_id] = "second"
+
 
     if msg_id in message_states_app and message_states_app[msg_id] == "first":
         await bot.edit_message_text(chat_id=call.from_user.id,
                                     message_id=msg_id,
                                     text =  
-                                    f"<b>Заявка на перевод:</b>\n"
+                                    f"<b>Заявка на перевод</b>\n"
                                     f"<b>Номер заявки: </b>{number_q}\n"
                                     f"<b>Инициатор:</b> {surname_init} {name_init[0]}. {middle_init[0]}.\n"
                                     f"<b>Сотрудник:</b> {fullname_employee}, {divis_info}, {post_info}\n"
@@ -297,7 +305,7 @@ async def unwrap_message_app(call: types.CallbackQuery, bot: Bot, state: FSMCont
         await bot.edit_message_text(chat_id=call.from_user.id,
                                     message_id=msg_id,
                                     text=
-                                    f"<b>Заявка на перевод:</b>\n"
+                                    f"<b>Заявка на перевод</b>\n"
                                     f"<b>Номер заявки: </b>{number_q}\n"
                                     f"<b>Инициатор: </b>{surname_init} {name_init} {middle_init}\n"
                                     f"<b>Должность: </b>{division_init}\n"
@@ -327,7 +335,7 @@ async def stop_app(callback: types.CallbackQuery):
 async def no_app(callback:types.CallbackQuery):
     await callback.message.delete_reply_markup()
     await callback.message.answer(
-        "Что необходимо изменить?", 
+        "Выберите пункт для изменения", 
         reply_markup=get_callback_btns(
                 btns={
                     'Сотрудник': f'search_changed',

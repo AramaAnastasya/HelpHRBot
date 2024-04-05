@@ -22,13 +22,36 @@ send_transfer = InlineKeyboardMarkup(
         ]
 
     ]
-)
-
+) 
+ 
 send_transferAct = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="Развернуть", callback_data="unwrap_trans"),
-            InlineKeyboardButton(text="Изменить дедлайн", callback_data="update_deadline")
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadline")
+        ],
+        [
+            InlineKeyboardButton(text="Отметить выполненной", callback_data="click")
+        ]
+    ]
+)
+
+
+send_transfer_d = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Свернуть", callback_data="unwrap_trans"),
+            InlineKeyboardButton(text="Установка дедлайна", callback_data="set_deadline")
+        ]
+
+    ]
+) 
+ 
+send_transferAct_d = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Свернуть", callback_data="unwrap_trans"),
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadline")
         ],
         [
             InlineKeyboardButton(text="Отметить выполненной", callback_data="click")

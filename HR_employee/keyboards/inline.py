@@ -81,3 +81,21 @@ sortedAct_keybordSecond = InlineKeyboardMarkup(
 
     ]
 )
+
+set_deadline_tmrw = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadline"),
+            InlineKeyboardButton(text="Отметить выполненной", callback_data="click")
+        ]
+    ]
+)
+
+set_deadline_tmrw_quiz = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadlinequiz"),
+            InlineKeyboardButton(text="Отметить выполненной", callback_data="clickquiz")
+        ]
+    ]
+)
