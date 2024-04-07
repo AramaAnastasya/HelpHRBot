@@ -2,4 +2,8 @@ from aiogram.fsm.state import StatesGroup, State, default_state
 
 
 class Applications(StatesGroup):
-    waiting_for_action = State()
+    comment = State()
+    id_mess_comm = State()
+    id_mess_state = State()
+    id_mess_go = State()
+    comm_quiz = State()

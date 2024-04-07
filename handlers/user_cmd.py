@@ -85,13 +85,17 @@ async def transfer_cmd(message: types.Message):
 	print(questions)
 	firstName = userData[3][:1]
 	MidName = userData[4][:1]
+
 	# цикл берет отдельную заявку
 	for item in aplikations:
 		# item - одна заявка, item это массив с данными
 		
 		print(item)
-
-		
+		text = ''
+		if item.Date_planned_deadline == None:
+			text = ""
+		else:
+			text = f"\n<b>Дата дедлайна:</b> {item.Date_planned_deadline}"
 		tempText = ''
 		if item[3] == 4:
 			tempText+=f'<b>Заявка по общей форме</b>\n'
@@ -99,6 +103,7 @@ async def transfer_cmd(message: types.Message):
 			tempText+=f'<b>Инициатор:</b> {userData[2]} {MidName}. {firstName}. \n'
 			tempText+=f'<b>Суть:</b> {item[6]}\n'
 			tempText+=f'<b>Дата:</b> {item[18]}'
+			tempText+=text
 
 		if item[3] == 1:
 			tempText+=f'<b>Заявка на перевод</b>\n'
@@ -107,6 +112,7 @@ async def transfer_cmd(message: types.Message):
 			tempText+=f'<b>Сотрудник:</b> {userData[2]} {userData[3]} {userData[4]}, {userData[5]}, {userData[6]}\n'
 			tempText+=f'<b>Дата конца испытательного срока:</b> {item[4]}\n'
 			tempText+=f'<b>Дата:</b> {item[18]}'
+			tempText+=text
 
 		if item[3] == 2:
 			tempText+=f'<b>Заявка на перевод на другой формат работы</b>\n'
@@ -116,6 +122,7 @@ async def transfer_cmd(message: types.Message):
 			tempText+=f'<b>Формат на данный момент:</b> {item[14]}\n'
 			tempText+=f'<b>Формат на переход:</b> {item[15]}\n'
 			tempText+=f'<b>Дата:</b> {item[18]}'
+			tempText+=text
 
 		if item[3] == 3:
 			tempText+=f'<b>Заявка на согласование заработной платы</b>\n'
@@ -125,17 +132,24 @@ async def transfer_cmd(message: types.Message):
 			tempText+=f'<b>Действующая сумма:</b> {item[12]}\n'
 			tempText+=f'<b>Предлагаемая сумма:</b> {item[11]}\n'
 			tempText+=f'<b>Дата:</b> {item[18]}'
+			tempText+=text
 
 		await message.answer(tempText, reply_markup=reply.main)
 
 
 	for quwst in questions:
+		text = ''
+		if quwst.Date_planned_deadline == None:
+			text = ""
+		else:
+			text = f"\n<b>Дата дедлайна:</b> {quwst.Date_planned_deadline}"
 		tempText = ''
 		tempText+=f'<b>Общий вопрос</b>\n'
 		tempText+=f'<b>Номер вопроса:</b> {quwst[0]}\n'
 		tempText+=f'<b>Инициатор:</b> {userData[2]} {MidName}. {firstName}. \n'
 		tempText+=f'<b>Суть:</b> {quwst[3]}\n'
 		tempText+=f'<b>Дата:</b> {quwst[5]}'
+		tempText+=text
 
 
 		await message.answer(tempText, reply_markup=reply.main)

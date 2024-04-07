@@ -58,6 +58,9 @@ async def deadline_message(call: types.CallbackQuery, state:FSMContext):
     number_q = match.group(1)
     await state.update_data(id_mess = msg_id)
     await state.update_data(number_q = number_q)
+    print("зашел")
+    print(msg_id)
+    print(number_q)
     await nav_cal_handler(call.message) 
 
 # default way of displaying a selector to user - date set for today
@@ -112,12 +115,15 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                 selected_date = date_c
                 # Разница между двумя датами
                 difference = selected_date - current_date
+                print(difference)
                 # Середина срока
                 middle_date = current_date + timedelta(days=difference.days // 2)
+                print(middle_date)
                 if middle_date.weekday() == 5:
                     middle_date = middle_date + timedelta(days=2)
                 elif middle_date.weekday() == 6:
                     middle_date = middle_date + timedelta(days=1)
+                print(middle_date)
                 session.execute(
                     update(question)
                     .where(question.c.id == number_q)
@@ -152,12 +158,15 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                 selected_date = date_c
                 # Разница между двумя датами
                 difference = selected_date - current_date
+                print(difference)
                 # Середина срока
                 middle_date = current_date + timedelta(days=difference.days // 2)
+                print(middle_date)
                 if middle_date.weekday() == 5:
                     middle_date = middle_date + timedelta(days=2)
                 elif middle_date.weekday() == 6:
                     middle_date = middle_date + timedelta(days=1)
+                print(middle_date)
                 session.execute(
                     update(application)
                     .where(application.c.id == number_q)
@@ -243,6 +252,7 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
             post_info = post_id.Position
         else:
             post_info = empl_id.Position
+
 
         init_info = session.query(table).filter(table.c.id == number_init).first()
 
@@ -338,6 +348,7 @@ async def send_message_time(bot:Bot, state: FSMContext):
     data = await state.get_data()
     type_quiz = data.get('type_quiz')
     number_q = data.get('number_q')
+    print(number_q)
     id_quiz = session.query(question).filter(question.c.id == number_q).first()
     id_info = session.query(application).filter(application.c.id == number_q).first()
     text = f"<b>Сотрудник: </b>"
@@ -348,12 +359,18 @@ async def send_message_time(bot:Bot, state: FSMContext):
     elif id_info.ID_Employee != 1 and id_info.ID_Class_application != 4:
         employee_info = session.query(table).filter(table.c.id == id_info.ID_Employee).first()
         text += f"{employee_info.Surname} {employee_info.Name} {employee_info.Middle_name}, {employee_info.Division}, {employee_info.Position}\n"
+                
+    print("получилось")
             
     if type_quiz == True:
         target_date = id_quiz.Middle_deadline
+        print(target_date)
+        # Добавляем к целевой дате один день и устанавливаем время на 10:00 утра
         target_datetime = datetime(target_date.year, target_date.month, target_date.day, 10, 0, 0)
+        print(target_datetime)
+        # Вычисляем разницу между текущим временем и целевым временем
         delta = target_datetime - datetime.now()
-
+        print(delta)
         if delta.total_seconds() > 0 and id_quiz.Date_actual_deadline == None:    
             await asyncio.sleep(delta.total_seconds())   
             user_info = session.query(table).filter(table.c.id == id_quiz.ID_Initiator).first()
@@ -369,8 +386,10 @@ async def send_message_time(bot:Bot, state: FSMContext):
         await state.update_data(type_quiz = False)
     else:
         target_date = id_info.Middle_deadline
-
+        print(target_date)
+        # Добавляем к целевой дате один день и устанавливаем время на 10:00 утра
         target_datetime = datetime(target_date.year, target_date.month, target_date.day, 10, 0, 0)
+        # Вычисляем разницу между текущим временем и целевым временем
         delta = target_datetime - datetime.now()
         user_info = session.query(table).filter(table.c.id == id_info.ID_Initiator).first()
         if id_info.ID_Class_application == 4 and id_info.Date_actual_deadline == None:

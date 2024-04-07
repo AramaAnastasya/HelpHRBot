@@ -18,7 +18,7 @@ sorted_keybordFirst = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="Заявки", callback_data="sort_app"),
-            InlineKeyboardButton(text="Вопросы", callback_data="sort_quest")
+            # InlineKeyboardButton(text="Вопросы", callback_data="sort_quest")
         ],
         [
             InlineKeyboardButton(text="Просмотреть всё", callback_data="sort_all")
@@ -96,6 +96,24 @@ set_deadline_tmrw_quiz = InlineKeyboardMarkup(
         [
             InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadlinequiz"),
             InlineKeyboardButton(text="Отметить выполненной", callback_data="clickquiz")
+        ]
+    ]
+)
+
+comment_request = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Да", callback_data="yes_comm"),
+            InlineKeyboardButton(text="Нет", callback_data="no_comm")
+        ]
+    ]
+)
+
+comment_push = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Отправить", callback_data="go_comm"),
+            InlineKeyboardButton(text="Отмена", callback_data="back_comm")
         ]
     ]
 )
