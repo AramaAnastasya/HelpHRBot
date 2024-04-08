@@ -212,44 +212,13 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
         resquiz_data = data.get('resquiz')
         today = date.today()
 
-        # Учитываем выходные дни, если завтрашний день - суббота или воскресенье
-        if today.weekday() == 5:  # Если завтра суббота
-            tomorrow = today + timedelta(days=2)  # пропускаем воскресенье
-        elif today.weekday() == 6:  # Если завтра воскресенье
-            tomorrow = today + timedelta(days=1)  # пропускаем субботу
-        else:
-            tomorrow = today + timedelta(days=1)  # Обычный случай
-        # Добавляем к завтрашнему дню 3 дня для выполнения заявки
-        deadline = tomorrow + timedelta(days=3)
-        print(deadline)
-        start = deadline
-        # Учитываем выходные дни между началом и концом дедлайна
-        if tomorrow.weekday() == 5:  # Если начало дедлайна - суббота
-            deadline = deadline + timedelta(days=2)  # пропускаем воскресенье
-        elif tomorrow.weekday() == 6:  # Если начало дедлайна - воскресенье
-            deadline = deadline + timedelta(days=1)  # пропускаем субботу
-        print(deadline)
-
-        # Находим разницу между текущей датой и дедлайном
-        time_difference = deadline - start
-        # Находим середину срока
-        middle_date = start + time_difference / 2
-        # Проверяем, выпадает ли середина срока на субботу или воскресение
-        if middle_date.weekday() == 5:  # Суббота
-            middle_date = middle_date + timedelta(days=2)
-        elif middle_date.weekday() == 6:  # Воскресение
-            middle_date = middle_date + timedelta(days=1)
-        print("Середина срока до дедлайна:", middle_date)
-
         # 2. Обновление записи в таблице Question
         application_data = {
             "ID_Initiator": user_info.id,
             "ID_Employee": 1,
             "Date_application":today.strftime('%Y-%m-%d'),
-            "Date_planned_deadline": deadline.strftime('%Y-%m-%d'),
             "Essence_question": quiz_data,
             "Essence_result": resquiz_data,
-            "Middle_deadline": middle_date.strftime('%Y-%m-%d')
         }
         session.execute(
             insert(question).values(application_data)

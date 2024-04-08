@@ -18,7 +18,7 @@ sorted_keybordFirst = InlineKeyboardMarkup(
     inline_keyboard=[
         [
             InlineKeyboardButton(text="Заявки", callback_data="sort_app"),
-            # InlineKeyboardButton(text="Вопросы", callback_data="sort_quest")
+            InlineKeyboardButton(text="Вопросы", callback_data="sort_quest")
         ],
         [
             InlineKeyboardButton(text="Просмотреть всё", callback_data="sort_all")

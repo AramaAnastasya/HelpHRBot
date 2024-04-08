@@ -696,31 +696,31 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
 
 
 # Вывод вопросов
-# @user_private_router.callback_query(F.data == "sort_quest")
-# async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
-#     await callback.message.delete_reply_markup()
-#     await state.update_data(unwrap = False)
-#     # Получите сессию для работы с базой данных
-#     session = Session()
-#     # Выберите данные из таблицы с использованием фильтрации
-#     result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline == None).order_by(table_question.c.Date_application).all()
-#     if result_Quest:
-#         for row in result_Quest:
-#             result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
-#             await callback.message.answer(
-#                 f"<b>Вопрос</b>\n"
-#                 f"<b>Номер вопроса:</b> {row.id}\n"
-#                             f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-#                             f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-#                             f"<b>Дата:</b> {row.Date_application}",
-#                 reply_markup=sendquiz)
-#     else:
-#         await callback.message.answer(  
-#                     f"Новых вопросов на данный момент нет",
-#                     reply_markup=reply.hr
-#                     )
-#     # Закройте сессию
-#     session.close()
+@user_private_router.callback_query(F.data == "sort_quest")
+async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
+    await callback.message.delete_reply_markup()
+    await state.update_data(unwrap = False)
+    # Получите сессию для работы с базой данных
+    session = Session()
+    # Выберите данные из таблицы с использованием фильтрации
+    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline == None).order_by(table_question.c.Date_application).all()
+    if result_Quest:
+        for row in result_Quest:
+            result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
+            await callback.message.answer(
+                f"<b>Вопрос</b>\n"
+                f"<b>Номер вопроса:</b> {row.id}\n"
+                            f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                            f"<b>Суть обращения: </b>{ row.Essence_question}\n"
+                            f"<b>Дата:</b> {row.Date_application}",
+                reply_markup=sendquiz)
+    else:
+        await callback.message.answer(  
+                    f"Новых вопросов на данный момент нет",
+                    reply_markup=reply.hr
+                    )
+    # Закройте сессию
+    session.close()
 
 # Вывод всех вопросов и заявок
 @user_private_router.callback_query(F.data == "sort_all")
@@ -804,16 +804,16 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                             f"<b>Дата:</b> {row.Date_application}",
                 reply_markup=send)
             
-    # result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline == None).order_by(table_question.c.Date_application).all()
-    # for row in result_Quest:
-    #     result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
-    #     await callback.message.answer(
-    #         f"<b>Вопрос</b>\n"
-    #         f"<b>Номер вопроса:</b> {row.id}\n"
-    #                     f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-    #                     f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-    #                     f"<b>Дата:</b> {row.Date_application}",
-    #         reply_markup=sendquiz)
+    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline == None).order_by(table_question.c.Date_application).all()
+    for row in result_Quest:
+        result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
+        await callback.message.answer(
+            f"<b>Вопрос</b>\n"
+            f"<b>Номер вопроса:</b> {row.id}\n"
+                        f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                        f"<b>Суть обращения: </b>{ row.Essence_question}\n"
+                        f"<b>Дата:</b> {row.Date_application}",
+            reply_markup=sendquiz)
 
     
     # Закройте сессию
@@ -845,6 +845,7 @@ async def click_setdl(call: types.CallbackQuery, bot: Bot, state: FSMContext):
         f"Оставить комментарий по <b>заявке {number_q}</b>", 
         reply_markup = inline.comment_request
     )
+    await state.update_data(comm_quiz = False)
 
 
 @user_private_router.callback_query(F.data == 'clickquiz')
@@ -884,6 +885,8 @@ async def no_comment(call: types.CallbackQuery, state: FSMContext):
         text = "Вы успешно выполнили задачу!",
         cache_time=30
     )
+    await call.message.answer("Выберите категорию", reply_markup=reply.hr)
+
     print(msg_id)
     print(msg_no_comm)
 
@@ -948,7 +951,7 @@ async def no_comment(call: types.CallbackQuery, state: FSMContext):
         id_quiz = session.query(table_question).filter(table_question.c.id == number_q).first()
         user_info = session.query(table_Employee).filter(table_Employee.c.id == id_quiz.ID_Initiator).first()
         await bot.send_message(user_info.id_telegram,
-                                    f"<b>Вопрос</b>\n\n" 
+                                    f"<b>Вопрос</b> выполнен\n\n" 
                                     f"<b>Номер вопроса: </b>{number_q}\n"
                                     f"<b>Суть обращения: </b>{id_quiz.Essence_question}\n"
                                     f"<b>Дата подачи заявки:</b> {id_quiz.Date_application}\n"
@@ -1017,11 +1020,12 @@ async def push_comm(call: types.CallbackQuery, state: FSMContext):
         text = "Вы успешно выполнили задачу!",
         cache_time=30
     )
+    await call.message.answer("Выберите категорию", reply_markup=reply.hr)
 
     print(f"id заявки {msg_id}")
     print(msg_yes)
     print(msg_go)
-    
+    print(comm_quiz)
     await bot.delete_message(call.message.chat.id, msg_id)
     await bot.delete_message(call.message.chat.id, msg_go+1)
     if comm_quiz == False:
@@ -1049,7 +1053,7 @@ async def push_comm(call: types.CallbackQuery, state: FSMContext):
                                             f"<b>Суть обращения: </b>{id_info.Essence_question}\n"
                                             f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
                                             f"<b>Дата завершения:</b> {today.strftime('%Y-%m-%d')}\n\n"
-                                            f"<b>Комментарий:</b> {comment}", 
+                                            f"📌<b>Комментарий:</b> {comment}", 
                                             parse_mode="HTML", reply_markup=reply.main)     
         elif id_info.ID_Class_application == 1:
             await bot.send_message(user_info.id_telegram,
@@ -1058,7 +1062,7 @@ async def push_comm(call: types.CallbackQuery, state: FSMContext):
                                             f"{text}"
                                             f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
                                             f"<b>Дата завершения:</b> {today.strftime('%Y-%m-%d')}\n\n"
-                                            f"<b>Комментарий:</b> {comment}",  
+                                            f"📌<b>Комментарий:</b> {comment}",  
                                             parse_mode="HTML", reply_markup=reply.main)     
         elif id_info.ID_Class_application == 2:
             await bot.send_message(user_info.id_telegram,
@@ -1067,7 +1071,7 @@ async def push_comm(call: types.CallbackQuery, state: FSMContext):
                                             f"{text}"
                                             f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
                                             f"<b>Дата завершения:</b> {today.strftime('%Y-%m-%d')}\n\n"
-                                            f"<b>Комментарий:</b> {comment}",  
+                                            f"📌<b>Комментарий:</b> {comment}",  
                                             parse_mode="HTML", reply_markup=reply.main)     
         elif id_info.ID_Class_application == 3:
             await bot.send_message(user_info.id_telegram,
@@ -1076,7 +1080,7 @@ async def push_comm(call: types.CallbackQuery, state: FSMContext):
                                             f"{text}"
                                             f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
                                             f"<b>Дата завершения:</b> {today.strftime('%Y-%m-%d')}\n\n"
-                                            f"<b>Комментарий:</b> {comment}",  
+                                            f"📌<b>Комментарий:</b> {comment}",  
                                             parse_mode="HTML", reply_markup=reply.main) 
     else:
         session.execute(
@@ -1092,7 +1096,7 @@ async def push_comm(call: types.CallbackQuery, state: FSMContext):
                                     f"<b>Суть обращения: </b>{id_quiz.Essence_question}\n"
                                     f"<b>Дата подачи заявки:</b> {id_quiz.Date_application}\n"
                                     f"<b>Дата завершения:</b> {today.strftime('%Y-%m-%d')}\n\n"
-                                    f"<b>Комментарий:</b> {comment}",  
+                                    f"📌<b>Комментарий:</b> {comment}",  
                                     parse_mode="HTML", reply_markup=reply.main)     
     await state.update_data(comm_quiz = False)
     session.commit()
@@ -1110,9 +1114,9 @@ async def stop_comm(call: types.CallbackQuery, state: FSMContext):
     print(f"id заявки {msg_id}")
     print(msg_yes)
     print(msg_go)
-    
+    await call.message.answer("Выберите категорию", reply_markup=reply.hr)
+
     await state.update_data(comment = "")
     await state.update_data(number_q = "")
 
-    await bot.delete_message(call.message.chat.id, msg_id)
     await bot.delete_message(call.message.chat.id, msg_go+1)

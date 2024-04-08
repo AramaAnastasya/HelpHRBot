@@ -139,7 +139,7 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
             application_data = {
                 "ID_Initiator": user_info.id,
                 "ID_Employee": 1,
-                "ID_Class_application": 3,
+                "ID_Class_application": 2,
                 'Full_name_employee': name,
                 'ID_Division': int(division),
                 'ID_Position': resultPositiong.id,
@@ -169,7 +169,6 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
                                 parse_mode="HTML", reply_markup=send_different)
         session.commit()
         await state.clear()
-        await state.update_data(unwrap = False)
     else:
         await bot.send_message(call.from_user.id, "Ошибка в формировании заявки.")
         await bot.send_message(call.from_user.id, "Пройдите авторизацию повторно", reply_markup=start_kb)

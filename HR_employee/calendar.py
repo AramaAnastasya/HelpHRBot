@@ -58,6 +58,7 @@ async def deadline_message(call: types.CallbackQuery, state:FSMContext):
     number_q = match.group(1)
     await state.update_data(id_mess = msg_id)
     await state.update_data(number_q = number_q)
+    await state.update_data(type_quiz = False)
     print("зашел")
     print(msg_id)
     print(number_q)
@@ -84,6 +85,8 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
     id_info = session.query(application).filter(application.c.id == number_q).first()
     text_hr = ""
     text_init = ""
+
+
     chat_id = callback_query.message.chat.id
     calendar = SimpleCalendar(
         locale=await get_user_locale(callback_query.from_user), show_alerts=True
@@ -130,9 +133,10 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                     .values(Date_planned_deadline = date_c.strftime('%Y-%m-%d'), Middle_deadline = middle_date)
                 )
                 session.commit()
-                await send_message_time(bot, state) 
+             
                 await bot.delete_message(chat_id=callback_query.from_user.id, 
                                     message_id=msg_id)
+                
                 id_quiz = session.query(question).filter(question.c.id == number_q).first()
                 user_info = session.query(table).filter(table.c.id == id_quiz.ID_Initiator).first()
                 await bot.send_message(user_info.id_telegram,
@@ -141,7 +145,8 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                                     f"<b>Суть обращения: </b>{id_quiz.Essence_question}\n"
                                     f"<b>Дата подачи заявки:</b> {id_quiz.Date_application}\n"
                                     f"<b>Дата дедлайна:</b> {id_quiz.Date_planned_deadline}", 
-                                    parse_mode="HTML", reply_markup=reply.main)     
+                                    parse_mode="HTML", reply_markup=reply.main)  
+                await send_message_time(bot, state)    
             else:
                 if id_info.Date_planned_deadline != None:
                     text_hr = f'Вы изменили дедлайн заявки номер {number_q} на <b>{date_c.strftime("%d-%m-%Y")}</b>'
@@ -173,11 +178,16 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                     .values(Date_planned_deadline = date_c.strftime('%Y-%m-%d'), Middle_deadline = middle_date)
                 )
                 session.commit()
-                await send_message_time(bot, state)
+
+                print(type_quiz)
+               
                 await bot.delete_message(chat_id=callback_query.from_user.id, 
                                     message_id=msg_id)
+                
                 id_info = session.query(application).filter(application.c.id == number_q).first()
                 user_info = session.query(table).filter(table.c.id == id_info.ID_Initiator).first()
+                print(type_quiz)
+                print(f"id_class заявки {id_info.ID_Class_application}")
                 text = f"<b>Сотрудник: </b>"
                 if id_info.ID_Employee == 1 and id_info.ID_Class_application != 4:
                     result_Division = session.query(table_division).filter(table_division.c.id == id_info.ID_Division).first()
@@ -186,7 +196,8 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                 elif id_info.ID_Employee != 1 and id_info.ID_Class_application != 4:
                     employee_info = session.query(table).filter(table.c.id == id_info.ID_Employee).first()
                     text += f"{employee_info.Surname} {employee_info.Name} {employee_info.Middle_name}, {employee_info.Division}, {employee_info.Position}\n"
-                
+                print(f"id_class заявки {id_info.ID_Class_application}")
+                print(f"id_заявки {number_q}")
                 if id_info.ID_Class_application == 4:
                     await bot.send_message(user_info.id_telegram,
                                         f"{text_init} по <b>заявке по общей форме</b>\n\n" 
@@ -219,6 +230,9 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                                         f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
                                         f"<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}", 
                                         parse_mode="HTML", reply_markup=reply.main)   
+                    
+                await send_message_time(bot, state)
+
 
         current_amount = id_info.Current_amount
         suggest_amount = id_info.Suggested_amount
@@ -264,9 +278,10 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
 
         # Добавляем к целевой дате один день и устанавливаем время на 10:00 утра
         target_datetime = datetime(target_date.year, target_date.month, target_date.day, 10, 0 , 0) - timedelta(days=1)
+        
         # Вычисляем разницу между текущим временем и целевым временем
         delta = target_datetime - datetime.now()
-    
+        print("конец дедлайна")
         if id_info.ID_Class_application == 1 and id_info.Date_actual_deadline == None:
             if delta.total_seconds() > 0:
                 await asyncio.sleep(delta.total_seconds())
@@ -361,7 +376,7 @@ async def send_message_time(bot:Bot, state: FSMContext):
         text += f"{employee_info.Surname} {employee_info.Name} {employee_info.Middle_name}, {employee_info.Division}, {employee_info.Position}\n"
                 
     print("получилось")
-            
+
     if type_quiz == True:
         target_date = id_quiz.Middle_deadline
         print(target_date)
@@ -404,10 +419,10 @@ async def send_message_time(bot:Bot, state: FSMContext):
                                     f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
                                     f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
                                     parse_mode="HTML", reply_markup=set_deadline_tmrw)     
-            elif id_info.ID_Class_application == 1 and id_info.Date_actual_deadline == None:
-                if delta.total_seconds() > 0:
-                    await asyncio.sleep(delta.total_seconds())   
-                    await bot.send_message(existing_record_HR.id_telegram,
+        elif id_info.ID_Class_application == 1 and id_info.Date_actual_deadline == None:
+            if delta.total_seconds() > 0:
+                await asyncio.sleep(delta.total_seconds())   
+                await bot.send_message(existing_record_HR.id_telegram,
                                     f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
                                     f"Заявка на перевод\n" 
                                     f"<b>Номер заявки: </b>{number_q}\n"
@@ -417,10 +432,10 @@ async def send_message_time(bot:Bot, state: FSMContext):
                                     f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
                                     f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
                                     parse_mode="HTML", reply_markup=set_deadline_tmrw)     
-            elif id_info.ID_Class_application == 2 and id_info.Date_actual_deadline == None:
-                if delta.total_seconds() > 0:
-                    await asyncio.sleep(delta.total_seconds())   
-                    await bot.send_message(existing_record_HR.id_telegram,
+        elif id_info.ID_Class_application == 2 and id_info.Date_actual_deadline == None:
+            if delta.total_seconds() > 0:
+                await asyncio.sleep(delta.total_seconds())   
+                await bot.send_message(existing_record_HR.id_telegram,
                                     f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
                                     f"Заявка на перевод на другой формат работы\n" 
                                     f"<b>Номер заявки: </b>{number_q}\n"
@@ -431,10 +446,10 @@ async def send_message_time(bot:Bot, state: FSMContext):
                                     f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
                                     f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
                                     parse_mode="HTML", reply_markup=set_deadline_tmrw)     
-            elif id_info.ID_Class_application == 3 and id_info.Date_actual_deadline == None:
-                if delta.total_seconds() > 0:
-                    await asyncio.sleep(delta.total_seconds())   
-                    await bot.send_message(existing_record_HR.id_telegram,
+        elif id_info.ID_Class_application == 3 and id_info.Date_actual_deadline == None:
+            if delta.total_seconds() > 0:
+                await asyncio.sleep(delta.total_seconds())   
+                await bot.send_message(existing_record_HR.id_telegram,
                                     f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
                                     f"Заявка на согласование заработной платы\n" 
                                     f"<b>Номер заявки: </b>{number_q}\n"
