@@ -16,6 +16,7 @@ from datetime import date
 from sqlalchemy import insert, func
 import re
 from filters.chat_types import ChatTypeFilter
+from handlers.keyboards.inline import init_zp, init_zp_d
 
 from utils.states import Employee
 from task_ZP.utils.states import taskZP
@@ -158,7 +159,7 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
                                 f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}\n"
                                 f"<b>Действующая сумма:</b> {current}\n"
                                 f"<b>Предлагаемая сумма:</b> {proposed}\n"
-                                f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", 
+                                f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}", 
                                 parse_mode="HTML", reply_markup=send_zp)
         else:
             result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
@@ -191,7 +192,7 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
                                 f"<b>Сотрудник:</b> {name}\n"
                                 f"<b>Действующая сумма:</b> {current}\n"
                                 f"<b>Предлагаемая сумма:</b> {proposed}\n"
-                                f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", 
+                                f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}", 
                                 parse_mode="HTML", reply_markup=send_zp)
         session.commit()
 
@@ -253,18 +254,31 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
         # Если состояния сообщения нет, устанавливаем его в "second"
         message_states_zp[msg_id] = "second"
 
-    if id_info.Date_planned_deadline != None and message_states_zp[msg_id] == "first":
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз", table.c.id_telegram == str(call.from_user.id)).first()
+    if id_info.Date_planned_deadline != None and message_states_zp[msg_id] == "first" and existing_record_HR != None:
         reply_markup = send_zpAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    elif id_info.Date_planned_deadline != None and message_states_zp[msg_id] == "second":   
+    elif id_info.Date_planned_deadline != None and message_states_zp[msg_id] == "second" and existing_record_HR != None:   
         reply_markup = send_zpAct_d
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    elif id_info.Date_planned_deadline == None and message_states_zp[msg_id] == "first":
-        reply_markup = send_zp
+    elif id_info.Date_planned_deadline == None and message_states_zp[msg_id] == "first" and existing_record_HR != None:
+        reply_markup = send_zpAct
         date_planned = ""
-    else:
-        reply_markup = send_zp_d
-        date_planned = "" 
+    elif id_info.Date_planned_deadline == None and message_states_zp[msg_id] == "second" and existing_record_HR != None:
+        reply_markup = send_zpAct_d
+        date_planned = ""
+    elif id_info.Date_planned_deadline != None and message_states_zp[msg_id] == "first" and existing_record_HR == None:
+        reply_markup = init_zp
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline != None and message_states_zp[msg_id] == "second" and existing_record_HR == None:   
+        reply_markup = init_zp_d
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline == None and message_states_zp[msg_id] == "first" and existing_record_HR == None:
+        reply_markup = init_zp
+        date_planned = ""
+    elif id_info.Date_planned_deadline == None and message_states_zp[msg_id] == "second" and existing_record_HR == None:
+        reply_markup = init_zp_d
+        date_planned = ""   
 
 
     init_info = session.query(table).filter(table.c.id == number_init).first()
@@ -286,7 +300,7 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
                                     f"<b>Сотрудник:</b> {fullname_employee}\n"
                                     f"<b>Действующая сумма:</b> {current_amount}\n"
                                     f"<b>Предлагаемая сумма:</b> {suggest_amount}\n"
-                                    f"<b>Дата:</b> {date_info}"
+                                    f"<b>Дата подачи заявки:</b> {date_info}"
                                     f"{date_planned}", 
                                     parse_mode="HTML", reply_markup=reply_markup)
         # Обновляем состояние сообщения в "second"
@@ -306,7 +320,7 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
                                     f"<b>Действующая сумма:</b> {current_amount}\n"
                                     f"<b>Предлагаемая сумма:</b> {suggest_amount}\n"
                                     f"<b>Причина перевода: </b>{reason_change}\n"
-                                    f"<b>Дата:</b> {date_info}"
+                                    f"<b>Дата подачи заявки:</b> {date_info}"
                                     f"{date_planned}", 
                                     parse_mode="HTML", reply_markup=reply_markup)
         # Возвращаем состояние сообщения к "first"

@@ -47,7 +47,7 @@ send_zp_d = InlineKeyboardMarkup(
 send_zpAct_d = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text="Свернуть", callback_data="wrap_zp"),
+            InlineKeyboardButton(text="Свернуть", callback_data="unwrap_zp"),
             InlineKeyboardButton(text="Изменить дедлайн", callback_data="set_deadline")
         ],
         [

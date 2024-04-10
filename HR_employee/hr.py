@@ -7,13 +7,16 @@ from aiogram.fsm.context import FSMContext
 from aiogram.filters import StateFilter
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.utils.formatting import as_list, as_marked_section, Bold,Spoiler #Italic, as_numbered_list и тд 
-from aiogram.types import Message
+from aiogram.filters.callback_data import CallbackData
+from aiogram.types import Message, CallbackQuery
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.orm import sessionmaker
-from datetime import date
+from datetime import date, datetime, timedelta
 from sqlalchemy import insert
 import re
-from HR_employee.keyboards.inline import get_callback_btns, sorted_keybordFirst, sorted_keybordSecond, sortedAct_keybordFirst, sortedAct_keybordSecond
+from aiogram_calendar import SimpleCalendar, SimpleCalendarCallback, DialogCalendar, DialogCalendarCallback, \
+    get_user_locale
+from HR_employee.keyboards.inline import get_callback_btns, sorted_keybordFirst, sorted_keybordSecond, sortedAct_keybordFirst, sortedAct_keybordSecond, сhoiceStatistic_keybord
 from HR_employee.keyboards import inline
 from filters.chat_types import ChatTypeFilter
 from HR_employee.utils.states import Applications
@@ -54,16 +57,15 @@ async def transfer_cmd(message: types.Message, state:FSMContext):
 # Вывод  inline-клавиатуры для сортировки заявок 
 @user_private_router.callback_query(F.data == "sort_app1")
 async def sort_applic(callback: types.CallbackQuery, state:FSMContext):
-    print('Общая подкатегория1')
-    await callback.message.delete_reply_markup()
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     await bot.send_message(callback.from_user.id, "Выберите тип заявки для вывода актуальных задач", reply_markup=sortedAct_keybordSecond, parse_mode="HTML")
 
 # Выводзаявок актуальных на перевод
 @user_private_router.callback_query(F.data == "sort_app_transf1")
 async def go_app_transf(callback: types.CallbackQuery, bot: Bot, state:FSMContext):
-    print('TRANS1')
-    await state.update_data(unwrap = True)
-    await callback.message.edit_reply_markup()
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
     result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None, table_application.c.Date_actual_deadline == None, table_application.c.ID_Class_application == 1).order_by(table_application.c.Date_planned_deadline).all()
@@ -96,8 +98,8 @@ async def go_app_transf(callback: types.CallbackQuery, bot: Bot, state:FSMContex
 # Вывод автуальных заявок на смену ЗП
 @user_private_router.callback_query(F.data == "sort_app_zp1")
 async def go_app_zp(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await state.update_data(unwrap = True)
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
@@ -141,8 +143,8 @@ async def go_app_zp(callback: types.CallbackQuery, state:FSMContext):
 # Вывод актуальных заявок перевод на другой формат рабоыт
 @user_private_router.callback_query(F.data == "sort_app_diff1")
 async def go_app_diff(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await state.update_data(unwrap = True)
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
@@ -187,8 +189,8 @@ async def go_app_diff(callback: types.CallbackQuery, state:FSMContext):
 # Вывод актуальных заявок общей формы
 @user_private_router.callback_query(F.data == "sort_app_general1")
 async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await state.update_data(unwrap = True)
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
@@ -216,8 +218,8 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
 # Вывод актуальных всех заявок
 @user_private_router.callback_query(F.data == "sort_app_all1")
 async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await state.update_data(unwrap = True)
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
@@ -314,8 +316,8 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
 # Вывод актуальных вопросов
 @user_private_router.callback_query(F.data == "sort_quest1")
 async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await state.update_data(unwrap = True)
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
@@ -342,99 +344,199 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
 # Вывод актуальных всех вопросов и заявок
 @user_private_router.callback_query(F.data == "sort_all1")
 async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
     result = session.query(table_application).filter(table_application.c.Date_planned_deadline != None, table_application.c.Date_actual_deadline == None).order_by(table_application.c.Date_planned_deadline).all()
-   
-    for row in result:
+    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline != None, table_question.c.Date_actual_deadline == None).order_by(table_question.c.Date_planned_deadline).all()
+    if result and not result_Quest:
+        for row in result:
         # Выведите сообщение с найденными данными и инлайн кнопкой
-        result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
-        if(row.ID_Class_application == 1):
-            if(row.ID_Employee == 1):
-                result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
-                result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+            result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
+            if(row.ID_Class_application == 1):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
+                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n <b>Дата подачи заявки:</b> {row.Date_application}\n<b>Дата дедлайна:</b> {row.Date_planned_deadline}", 
+                        reply_markup=send_transferAct)
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
+                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата подачи заявки:</b> {row.Date_application}\n<b>Дата дедлайна:</b> {row.Date_planned_deadline}", 
+                        reply_markup=send_transferAct)
+            if(row.ID_Class_application == 2):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод на другой формат работы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                                    f"<b>Инициатор:</b>  {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                    f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
+                                    f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
+                                    f"<b>Формат на переход:</b> {row.Future_work_format}\n"
+                                    f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
+                                    f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
+                        reply_markup=send_differentAct)
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод на другой формат работы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                                    f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                    f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
+                                    f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
+                                    f"<b>Формат на переход:</b> {row.Future_work_format}\n"
+                                    f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
+                                    f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
+                        reply_markup=send_differentAct)
+            if(row.ID_Class_application == 3):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на согласование заработной платы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                            f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                            f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
+                            f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
+                            f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
+                            f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
+                        reply_markup=send_zpAct)
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на согласование заработной платы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                            f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                            f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
+                            f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
+                            f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
+                            f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
+                        reply_markup=send_zpAct)
+            if(row.ID_Class_application == 4):
                 await callback.message.answer(
-                    f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
-                    f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n <b>Дата подачи заявки:</b> {row.Date_application}\n<b>Дата дедлайна:</b> {row.Date_planned_deadline}", 
-                    reply_markup=send_transferAct)
-            else:
-                result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
-                await callback.message.answer(
-                    f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
-                    f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата подачи заявки:</b> {row.Date_application}\n<b>Дата дедлайна:</b> {row.Date_planned_deadline}", 
-                    reply_markup=send_transferAct)
-        if(row.ID_Class_application == 2):
-            if(row.ID_Employee == 1):
-                result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
-                result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
-                await callback.message.answer(
-                    f"<b>Заявка на перевод на другой формат работы</b>\n"
+                    f"<b>Заявка по общей форме</b>\n"
                     f"<b>Номер заявки:</b> {row.id}\n"
-                                f"<b>Инициатор:</b>  {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-                                f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
-                                f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
-                                f"<b>Формат на переход:</b> {row.Future_work_format}\n"
+                                f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                f"<b>Суть обращения: </b>{ row.Essence_question}\n"
                                 f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
                                 f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
-                    reply_markup=send_differentAct)
-            else:
-                result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    reply_markup=sendAct)
+    elif result and result_Quest:
+        for row in result:
+            # Выведите сообщение с найденными данными и инлайн кнопкой
+            result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
+            if(row.ID_Class_application == 1):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
+                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n <b>Дата подачи заявки:</b> {row.Date_application}\n<b>Дата дедлайна:</b> {row.Date_planned_deadline}", 
+                        reply_markup=send_transferAct)
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
+                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата подачи заявки:</b> {row.Date_application}\n<b>Дата дедлайна:</b> {row.Date_planned_deadline}", 
+                        reply_markup=send_transferAct)
+            if(row.ID_Class_application == 2):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод на другой формат работы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                                    f"<b>Инициатор:</b>  {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                    f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
+                                    f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
+                                    f"<b>Формат на переход:</b> {row.Future_work_format}\n"
+                                    f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
+                                    f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
+                        reply_markup=send_differentAct)
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод на другой формат работы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                                    f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                    f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
+                                    f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
+                                    f"<b>Формат на переход:</b> {row.Future_work_format}\n"
+                                    f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
+                                    f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
+                        reply_markup=send_differentAct)
+            if(row.ID_Class_application == 3):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на согласование заработной платы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                            f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                            f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
+                            f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
+                            f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
+                            f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
+                        reply_markup=send_zpAct)
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на согласование заработной платы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                            f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                            f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
+                            f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
+                            f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
+                            f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
+                        reply_markup=send_zpAct)
+            if(row.ID_Class_application == 4):
                 await callback.message.answer(
-                    f"<b>Заявка на перевод на другой формат работы</b>\n"
+                    f"<b>Заявка по общей форме</b>\n"
                     f"<b>Номер заявки:</b> {row.id}\n"
-                                f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-                                f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
-                                f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
-                                f"<b>Формат на переход:</b> {row.Future_work_format}\n"
+                                f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                f"<b>Суть обращения: </b>{ row.Essence_question}\n"
                                 f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
                                 f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
-                    reply_markup=send_differentAct)
-        if(row.ID_Class_application == 3):
-            if(row.ID_Employee == 1):
-                result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
-                result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
-                await callback.message.answer(
-                    f"<b>Заявка на согласование заработной платы</b>\n"
-                    f"<b>Номер заявки:</b> {row.id}\n"
-                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-                        f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
-                        f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
-                        f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                        f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
-                        f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
-                    reply_markup=send_zpAct)
-            else:
-                result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
-                await callback.message.answer(
-                    f"<b>Заявка на согласование заработной платы</b>\n"
-                    f"<b>Номер заявки:</b> {row.id}\n"
-                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-                        f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
-                        f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
-                        f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                        f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
-                        f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
-                    reply_markup=send_zpAct)
-        if(row.ID_Class_application == 4):
+                    reply_markup=sendAct)
+        for row in result_Quest:
+            result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
             await callback.message.answer(
-                f"<b>Заявка по общей форме</b>\n"
-                f"<b>Номер заявки:</b> {row.id}\n"
+                f"<b>Вопрос</b>\n"
+                f"<b>Номер вопроса:</b> {row.id}\n"
                             f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
                             f"<b>Суть обращения: </b>{ row.Essence_question}\n"
                             f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
                             f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
-                reply_markup=sendAct)
-    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline != None, table_question.c.Date_actual_deadline == None).order_by(table_question.c.Date_planned_deadline).all()
-    for row in result_Quest:
-        result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
-        await callback.message.answer(
-            f"<b>Вопрос</b>\n"
-            f"<b>Номер вопроса:</b> {row.id}\n"
-                        f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-                        f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-                        f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
-                        f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
-            reply_markup=sendquizAct)
+                reply_markup=sendquizAct)
+    elif not result and result_Quest:
+        for row in result_Quest:
+            result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
+            await callback.message.answer(
+                f"<b>Вопрос</b>\n"
+                f"<b>Номер вопроса:</b> {row.id}\n"
+                            f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                            f"<b>Суть обращения: </b>{ row.Essence_question}\n"
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}\n"
+                            f"<b>Дата дедлайна:</b> {row.Date_planned_deadline}",
+                reply_markup=sendquizAct)
+    
+    else:
+        await callback.message.answer(  
+                    f"Актуальных задач на данный момент нет",
+                    reply_markup=reply.hr
+                    )
+    
+   
     # Закройте сессию
     session.close()
 
@@ -450,16 +552,15 @@ async def transfer_cmd23(message: types.Message, state:FSMContext):
 # Вывод  inline-клавиатуры для сортировки заявок 
 @user_private_router.callback_query(F.data == "sort_app")
 async def sort_applic(callback: types.CallbackQuery, state:FSMContext):
-    print('Общая подкатегория')
-    await callback.message.delete_reply_markup()
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     await bot.send_message(callback.from_user.id, "Выберите тип заявки для вывода новых задач", reply_markup=sorted_keybordSecond, parse_mode="HTML")
 
 # Вывод заявок на перевод
 @user_private_router.callback_query(F.data == "sort_app_transf")
 async def go_app_transf(callback: types.CallbackQuery, bot: Bot, state:FSMContext):
-    print('TRANS')
-    await state.update_data(unwrap = False)
-    await callback.message.edit_reply_markup()
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
     result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None, table_application.c.ID_Class_application == 1).order_by(table_application.c.Date_application).all()
@@ -491,8 +592,8 @@ async def go_app_transf(callback: types.CallbackQuery, bot: Bot, state:FSMContex
 # Вывод заявок на смену ЗП
 @user_private_router.callback_query(F.data == "sort_app_zp")
 async def go_app_zp(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await state.update_data(unwrap = False)
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
@@ -511,7 +612,7 @@ async def go_app_zp(callback: types.CallbackQuery, state:FSMContext):
                         f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
                         f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
                         f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                        f"<b>Дата:</b> {row.Date_application}",
+                        f"<b>Дата подачи заявки:</b> {row.Date_application}",
                     reply_markup=send_zp)
             else:
                 result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -522,7 +623,7 @@ async def go_app_zp(callback: types.CallbackQuery, state:FSMContext):
                         f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
                         f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
                         f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                        f"<b>Дата:</b> {row.Date_application}",
+                        f"<b>Дата подачи заявки:</b> {row.Date_application}",
                     reply_markup=send_zp)
     else:
         await callback.message.answer(
@@ -534,8 +635,8 @@ async def go_app_zp(callback: types.CallbackQuery, state:FSMContext):
 # Вывод заявок перевод на другой формат рабоыт
 @user_private_router.callback_query(F.data == "sort_app_diff")
 async def go_app_diff(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await state.update_data(unwrap = False)
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
@@ -554,7 +655,7 @@ async def go_app_diff(callback: types.CallbackQuery, state:FSMContext):
                                 f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
                                 f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
                                 f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                                f"<b>Дата:</b> {row.Date_application}", 
+                                f"<b>Дата подачи заявки:</b> {row.Date_application}", 
                     reply_markup=inline.send_different)
             else:
                 result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -565,7 +666,7 @@ async def go_app_diff(callback: types.CallbackQuery, state:FSMContext):
                                 f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
                                 f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
                                 f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                                f"<b>Дата:</b> {row.Date_application}", 
+                                f"<b>Дата подачи заявки:</b> {row.Date_application}", 
                     reply_markup=inline.send_different) 
     else:
         await callback.message.answer(
@@ -578,8 +679,8 @@ async def go_app_diff(callback: types.CallbackQuery, state:FSMContext):
 # Вывод  заявок общей формы
 @user_private_router.callback_query(F.data == "sort_app_general")
 async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await state.update_data(unwrap = False)
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
@@ -593,7 +694,7 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                 f"<b>Номер заявки:</b> {row.id}\n"
                             f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
                             f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-                            f"<b>Дата:</b> {row.Date_application}",
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}",
                 reply_markup=send)
     else:
         await callback.message.answer(
@@ -606,8 +707,8 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
 # Вывод всех заявок
 @user_private_router.callback_query(F.data == "sort_app_all")
 async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await state.update_data(unwrap = False)
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
@@ -622,13 +723,13 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                     result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
                     await callback.message.answer(
                         f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
-                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата:</b> {row.Date_application}\n", 
+                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата подачи заявки:</b> {row.Date_application}\n", 
                         reply_markup=send_transfer)
                 else:
                     result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
                     await callback.message.answer(
                         f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
-                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата</b>: {row.Date_application}\n", 
+                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата подачи заявки:</b> {row.Date_application}\n", 
                         reply_markup=send_transfer)
             if(row.ID_Class_application == 2):
                 if(row.ID_Employee == 1):
@@ -641,7 +742,7 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                                     f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
                                     f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
                                     f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                                    f"<b>Дата:</b> {row.Date_application}", 
+                                    f"<b>Дата подачи заявки:</b> {row.Date_application}", 
                         reply_markup=send_different)
                 else:
                     result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -652,7 +753,7 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                                     f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
                                     f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
                                     f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                                    f"<b>Дата:</b> {row.Date_application}", 
+                                    f"<b>Дата подачи заявки:</b> {row.Date_application}", 
                         reply_markup=send_different)
             if(row.ID_Class_application == 3):
                 if(row.ID_Employee == 1):
@@ -665,7 +766,7 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                             f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
                             f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
                             f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                            f"<b>Дата:</b> {row.Date_application}",
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}",
                         reply_markup=send_zp)
                 else:
                     result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
@@ -676,7 +777,7 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                             f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
                             f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
                             f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                            f"<b>Дата:</b> {row.Date_application}",
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}",
                     reply_markup=send_zp)
             if(row.ID_Class_application == 4):
                 await callback.message.answer(
@@ -684,7 +785,7 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
                     f"<b>Номер заявки:</b> {row.id}\n"
                                 f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
                                 f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-                                f"<b>Дата:</b> {row.Date_application}",
+                                f"<b>Дата подачи заявки:</b> {row.Date_application}",
                     reply_markup=send)
     else:
         await callback.message.answer(
@@ -698,8 +799,8 @@ async def go_app_all(callback: types.CallbackQuery, state:FSMContext):
 # Вывод вопросов
 @user_private_router.callback_query(F.data == "sort_quest")
 async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
-    await callback.message.delete_reply_markup()
-    await state.update_data(unwrap = False)
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
@@ -712,7 +813,7 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
                 f"<b>Номер вопроса:</b> {row.id}\n"
                             f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
                             f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-                            f"<b>Дата:</b> {row.Date_application}",
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}",
                 reply_markup=sendquiz)
     else:
         await callback.message.answer(  
@@ -725,107 +826,299 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
 # Вывод всех вопросов и заявок
 @user_private_router.callback_query(F.data == "sort_all")
 async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
-    
+    msg_id = callback.message.message_id
+    await bot.delete_message(callback.message.chat.id, msg_id)
     # Получите сессию для работы с базой данных
     session = Session()
     # Выберите данные из таблицы с использованием фильтрации
     result = session.query(table_application).filter(table_application.c.Date_planned_deadline == None).order_by(table_application.c.Date_application).all()
-    for row in result:
-        # Выведите сообщение с найденными данными и инлайн кнопкой
-        result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
-        if(row.ID_Class_application == 1):
-            if(row.ID_Employee == 1):
-                result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
-                result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
-                await callback.message.answer(
-                    f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
-                    f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата:</b> {row.Date_application}\n", 
-                   reply_markup=send_transfer)
-            else:
-                result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
-                await callback.message.answer(
-                    f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
-                    f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата</b>: {row.Date_application}\n", 
+    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline == None).order_by(table_question.c.Date_application).all()
+    if result and result_Quest:
+        for row in result:
+            # Выведите сообщение с найденными данными и инлайн кнопкой
+            result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
+            if(row.ID_Class_application == 1):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
+                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата подачи заявки:</b> {row.Date_application}\n", 
                     reply_markup=send_transfer)
-        if(row.ID_Class_application == 2):
-            if(row.ID_Employee == 1):
-                result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
-                result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
+                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата подачи заявки:</b> {row.Date_application}\n", 
+                        reply_markup=send_transfer)
+            if(row.ID_Class_application == 2):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод на другой формат работы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                                    f"<b>Инициатор:</b>  {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                    f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
+                                    f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
+                                    f"<b>Формат на переход:</b> {row.Future_work_format}\n"
+                                    f"<b>Дата подачи заявки:</b> {row.Date_application}", 
+                        reply_markup=send_different)
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод на другой формат работы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                                    f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                    f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
+                                    f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
+                                    f"<b>Формат на переход:</b> {row.Future_work_format}\n"
+                                    f"<b>Дата подачи заявки:</b> {row.Date_application}", 
+                        reply_markup=send_different)
+            if(row.ID_Class_application == 3):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на согласование заработной платы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                            f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                            f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
+                            f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
+                            f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}",
+                        reply_markup=send_zp)
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на согласование заработной платы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                            f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                            f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
+                            f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
+                            f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}",
+                        reply_markup=send_zp)
+            if(row.ID_Class_application == 4):
                 await callback.message.answer(
-                    f"<b>Заявка на перевод на другой формат работы</b>\n"
+                    f"<b>Заявка по общей форме</b>\n"
                     f"<b>Номер заявки:</b> {row.id}\n"
-                                f"<b>Инициатор:</b>  {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-                                f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
-                                f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
-                                f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                                f"<b>Дата:</b> {row.Date_application}", 
-                    reply_markup=send_different)
-            else:
-                result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
-                await callback.message.answer(
-                    f"<b>Заявка на перевод на другой формат работы</b>\n"
-                    f"<b>Номер заявки:</b> {row.id}\n"
-                                f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-                                f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
-                                f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
-                                f"<b>Формат на переход:</b> {row.Future_work_format}\n"
-                                f"<b>Дата:</b> {row.Date_application}", 
-                    reply_markup=send_different)
-        if(row.ID_Class_application == 3):
-            if(row.ID_Employee == 1):
-                result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
-                result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
-                await callback.message.answer(
-                    f"<b>Заявка на согласование заработной платы</b>\n"
-                    f"<b>Номер заявки:</b> {row.id}\n"
-                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-                        f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
-                        f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
-                        f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                         f"<b>Дата:</b> {row.Date_application}",
-                     reply_markup=send_zp)
-            else:
-                result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
-                await callback.message.answer(
-                    f"<b>Заявка на согласование заработной платы</b>\n"
-                    f"<b>Номер заявки:</b> {row.id}\n"
-                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-                        f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
-                        f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
-                        f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
-                         f"<b>Дата:</b> {row.Date_application}",
-                    reply_markup=send_zp)
-        if(row.ID_Class_application == 4):
+                                f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                f"<b>Суть обращения: </b>{ row.Essence_question}\n"
+                                f"<b>Дата подачи заявки:</b> {row.Date_application}",
+                    reply_markup=send)
+                  
+        for row in result_Quest:
+            result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
             await callback.message.answer(
-                f"<b>Заявка по общей форме</b>\n"
-                f"<b>Номер заявки:</b> {row.id}\n"
+                f"<b>Вопрос</b>\n"
+                f"<b>Номер вопроса:</b> {row.id}\n"
                             f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
                             f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-                            f"<b>Дата:</b> {row.Date_application}",
-                reply_markup=send)
-            
-    result_Quest = session.query(table_question).filter(table_question.c.Date_planned_deadline == None).order_by(table_question.c.Date_application).all()
-    for row in result_Quest:
-        result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
-        await callback.message.answer(
-            f"<b>Вопрос</b>\n"
-            f"<b>Номер вопроса:</b> {row.id}\n"
-                        f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
-                        f"<b>Суть обращения: </b>{ row.Essence_question}\n"
-                        f"<b>Дата:</b> {row.Date_application}",
-            reply_markup=sendquiz)
-
-    
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}",
+                reply_markup=sendquiz)
+    elif result and not result_Quest:
+         for row in result:
+            # Выведите сообщение с найденными данными и инлайн кнопкой
+            result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
+            if(row.ID_Class_application == 1):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
+                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата подачи заявки:</b> {row.Date_application}\n", 
+                    reply_markup=send_transfer)
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод</b>\n<b>Номер заявки:</b> {row.id}\n"
+                        f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n<b>Дата конца Испытательного Срока:</b> {row.End_date_IS}.\n<b>Дата подачи заявки:</b> {row.Date_application}\n", 
+                        reply_markup=send_transfer)
+            if(row.ID_Class_application == 2):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод на другой формат работы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                                    f"<b>Инициатор:</b>  {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                    f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
+                                    f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
+                                    f"<b>Формат на переход:</b> {row.Future_work_format}\n"
+                                    f"<b>Дата подачи заявки:</b> {row.Date_application}", 
+                        reply_markup=send_different)
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на перевод на другой формат работы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                                    f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                    f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
+                                    f"<b>Формат на данный момент:</b> {row.Current_work_format}\n"
+                                    f"<b>Формат на переход:</b> {row.Future_work_format}\n"
+                                    f"<b>Дата подачи заявки:</b> {row.Date_application}", 
+                        reply_markup=send_different)
+            if(row.ID_Class_application == 3):
+                if(row.ID_Employee == 1):
+                    result_Division = session.query(table_division).filter(row.ID_Division == table_division.c.id).first()
+                    result_Position = session.query(table_position).filter(row.ID_Position == table_position.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на согласование заработной платы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                            f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                            f"<b>Сотрудник:</b> {row.Full_name_employee}, {result_Division.Division}, {result_Position.Position}\n"
+                            f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
+                            f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}",
+                        reply_markup=send_zp)
+                else:
+                    result_Employee = session.query(table_Employee).filter(row.ID_Employee == table_Employee.c.id).first()
+                    await callback.message.answer(
+                        f"<b>Заявка на согласование заработной платы</b>\n"
+                        f"<b>Номер заявки:</b> {row.id}\n"
+                            f"<b>Инициатор:</b> {result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                            f"<b>Сотрудник:</b> {result_Employee.Surname} {result_Employee.Name} {result_Employee.Middle_name}, {result_Employee.Division}, {result_Employee.Position}\n"
+                            f"<b>Действующая сумма:</b> {row.Suggested_amount}.\n"
+                            f"<b>Предлагаемая сумма:</b> {row.Current_amount}.\n"
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}",
+                        reply_markup=send_zp)
+            if(row.ID_Class_application == 4):
+                await callback.message.answer(
+                    f"<b>Заявка по общей форме</b>\n"
+                    f"<b>Номер заявки:</b> {row.id}\n"
+                                f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                                f"<b>Суть обращения: </b>{ row.Essence_question}\n"
+                                f"<b>Дата подачи заявки:</b> {row.Date_application}",
+                    reply_markup=send)
+    elif not result and result_Quest:
+        for row in result_Quest:
+            result_Initor = session.query(table_Employee).filter(row.ID_Initiator == table_Employee.c.id).first()
+            await callback.message.answer(
+                f"<b>Вопрос</b>\n"
+                f"<b>Номер вопроса:</b> {row.id}\n"
+                            f"<b>Инициатор: </b>{result_Initor.Surname} {result_Initor.Name[0]}.{result_Initor.Middle_name[0]}.\n"
+                            f"<b>Суть обращения: </b>{ row.Essence_question}\n"
+                            f"<b>Дата подачи заявки:</b> {row.Date_application}",
+                reply_markup=sendquiz)
+    else:
+         await callback.message.answer(  
+                    f"Новых задач на данный момент нет",
+                    reply_markup=reply.hr
+                    )
     # Закройте сессию
     session.close()
 
 @user_private_router.message((F.text.lower() == "статистика")) 
 async def transfer_cmd(message: types.Message, state:FSMContext):
-    await state.update_data(request="статистика")
-    await message.answer(
-        "узнать статистику",
-        reply_markup=reply.hr
-    )
+    await state.update_data(request="статистика", reply_markup=reply.hr)
+    await message.answer("Выберите период", reply_markup=сhoiceStatistic_keybord)
+    
+
+# Словарь с названиями месяцев на русском языке
+month_names = {1: 'Январь', 2: 'Февраль', 3: 'Март', 4: 'Апрель', 5: 'Май', 6: 'Июнь',7: 'Июль', 8: 'Август', 9: 'Сентябрь', 10: 'Октябрь', 11: 'Ноябрь',12: 'Декабрь'}
+
+# Вывод cтатистики по заявкам и вопросм на текущий месяц
+@user_private_router.callback_query(F.data == "now_month")
+async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
+    await callback.message.delete_reply_markup()
+    # Получаем текущую дату и время
+    now = datetime.now()
+    month_name = month_names[now.month]
+    # Создаем дату начала текущего месяца без времени
+    start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    start_of_month_date_only = start_of_month.date()
+    session = Session()
+    text = (f"Статистика заявок на <b>{month_name} {now.year}</b> года\n")
+    # Выберите данные из таблицы с использованием фильтрации
+    count_Quest = session.query(table_question).filter(table_question.c.Date_actual_deadline != None, table_question.c.Date_actual_deadline >= start_of_month_date_only).order_by(table_question.c.Date_application).count()
+    text += f"Количеcтво вопросов: <b>{count_Quest if count_Quest != 0 else 'нет'}</b>\n"
+    countGener_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 4).order_by(table_application.c.Date_application).count()
+    text += f"Количеcтво заявок по общей форме: <b>{countGener_App if countGener_App != 0 else 'нет'}</b>\n"
+    countTransf_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 1).order_by(table_application.c.Date_application).count()
+    text += f"Количеcтво заявок на перевод: <b>{countTransf_App if countTransf_App != 0 else 'нет'}</b>\n"
+    countZP_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 3).order_by(table_application.c.Date_application).count()
+    text += f"Количеcтво заявок на перевод ЗП: <b>{countZP_App if countZP_App != 0 else 'нет'}</b>\n"
+    countDiffFor_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 2).order_by(table_application.c.Date_application).count()
+    text += f"Количеcтво заявок на перевод на другой формат работы: <b>{countDiffFor_App if countDiffFor_App != 0 else 'нет'}</b>"
+    session.close()
+
+    await callback.message.answer(text=text, reply_markup=reply.hr, parse_mode='HTML')
+
+# Состояния для FSM
+class CalendarStates(StatesGroup):
+    start_date = State()
+    startSave_date = State()
+    end_date = State()
+
+    
+# Вывод cтатистики по заявкам и вопросм на выбранный период
+@user_private_router.callback_query(F.data == "choice_month")
+async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
+    await callback.message.delete_reply_markup()
+    await nav_cal_handler1(callback.message)
+
+    
+# @user_private_router.callback_query(SimpleCalendarCallback.filter())
+# async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callback_data: CallbackData,  state: FSMContext):
+#     data = await state.get_data()
+#     start_date = data.get('start_date')
+#     start_dat = data.get('startSave_date')
+#     end_date = data.get('end_date')
+#     user_data = await state.get_data()
+#     now = datetime.now()
+#     calendar = SimpleCalendar(
+#         locale=await get_user_locale(callback_query.from_user), show_alerts=True
+#     )
+#     calendar.set_dates_range(datetime(2024, 1, 1), datetime(int(now.strftime('%Y'))+1, 12, 31))
+#     selected, date = await calendar.process_selection(callback_query, callback_data)
+#     # await callback_query.message.answer(text=f"{date.strftime("%d-%m-%Y")}", parse_mode='HTML')
+#     if selected:
+#         if start_date == None:
+#             await state.update_data(start_date = date)
+#             await state.update_data(startSave_date = date)
+#             await nav_cal_handler1(callback_query.message)
+#             print(start_dat)
+#             print('111111')
+#         else:
+#         # Здесь можно установить состояние для даты окончания вручную
+#             await state.update_data(start_date = None)
+#             # await state.update_data(end_date = date)
+#             print(date)
+#             print('22222')
+#             start_dat = data.get('startSave_date')
+#             # end_date = data.get('end_date')
+#             # print(start_dat, end_date)
+#             if start_dat != None:
+#                 session = Session()
+#                 # text = (f"Статистика заявок на <b>{now.strftime('%B')} {now.strftime('%Y')}</b> год\n").encode('utf-8').decode('utf-8')
+#                 text = f"Статистика заявок на период с <b>{start_dat.strftime('%d-%m-%Y')}</b> по <b>{date.strftime('%d-%m-%Y')}</b>\n"
+#                 # Выберите данные из таблицы с использованием фильтрации
+#                 count_Quest = session.query(table_question).filter(table_question.c.Date_actual_deadline != None, table_question.c.Date_actual_deadline >= start_dat, table_question.c.Date_actual_deadline <= date).order_by(table_question.c.Date_application).count()
+#                 text += f"Количеcтво вопросов: <b>{count_Quest if count_Quest != 0 else 'нет'}</b>\n"
+#                 countGener_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_dat, table_application.c.Date_actual_deadline <= date, table_application.c.ID_Class_application == 4).order_by(table_application.c.Date_application).count()
+#                 text += f"Количеcтво заявок по общей форме: <b>{countGener_App if countGener_App != 0 else 'нет'}</b>\n"
+#                 countTransf_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_dat, table_application.c.Date_actual_deadline <= date, table_application.c.ID_Class_application == 1).order_by(table_application.c.Date_application).count()
+#                 text += f"Количеcтво заявок на перевод: <b>{countTransf_App if countTransf_App != 0 else 'нет'}</b>\n"
+#                 countZP_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_dat, table_application.c.Date_actual_deadline <= date, table_application.c.ID_Class_application == 3).order_by(table_application.c.Date_application).count()
+#                 text += f"Количеcтво заявок на перевод ЗП: <b>{countZP_App if countZP_App != 0 else 'нет'}</b>\n"
+#                 countDiffFor_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_dat, table_application.c.Date_actual_deadline <= date, table_application.c.ID_Class_application == 2).order_by(table_application.c.Date_application).count()
+#                 text += f"Количеcтво заявок на перевод на другой формат работы: <b>{countDiffFor_App if countDiffFor_App != 0 else 'нет'}</b>"
+#                 session.close()
+#                 print(text)
+#                 await callback_query.message.answer(text=text, reply_markup=reply.hr, parse_mode='HTML')
+
+
+
+
+async def nav_cal_handler1(message: Message):
+    await bot.edit_message_reply_markup(
+        chat_id=message.chat.id,
+        message_id=message.message_id,
+        reply_markup=await SimpleCalendar(locale='ru').start_calendar()
+    )     
+
+
 
 
 @user_private_router.callback_query(F.data == 'click')
@@ -886,9 +1179,6 @@ async def no_comment(call: types.CallbackQuery, state: FSMContext):
         cache_time=30
     )
     await call.message.answer("Выберите категорию", reply_markup=reply.hr)
-
-    print(msg_id)
-    print(msg_no_comm)
 
     await bot.delete_message(call.message.chat.id, msg_id)
     await bot.delete_message(call.message.chat.id, msg_no_comm)
@@ -970,7 +1260,6 @@ async def write_comm(call: types.CallbackQuery, state: FSMContext):
             "Введите <b>комментарий</b>",
             reply_markup=reply.hr
     )
-    print(f"введите комментарий {msg_yes_comm}")
     await state.set_state(Applications.comment)
 
    
@@ -984,9 +1273,7 @@ async def cmd_comm(message: Message, state: FSMContext):
 
     msg_comm = message.message_id
     await state.update_data(id_mess_go = msg_comm)
-    print(f"введите комментарий {msg_yes}")
      
-    print(message.chat.id)
     await bot.delete_message(message.chat.id, msg_yes)
     await message.delete()
     await bot.delete_message(message.chat.id, msg_yes+1)
@@ -1002,7 +1289,6 @@ async def cmd_comm(message: Message, state: FSMContext):
             f"{message.text}", 
             reply_markup = inline.comment_push
         )
-    print(f"комментарий по заявке {msg_comm}")
 
 @user_private_router.callback_query(F.data == 'go_comm')
 async def push_comm(call: types.CallbackQuery, state: FSMContext):
@@ -1022,10 +1308,6 @@ async def push_comm(call: types.CallbackQuery, state: FSMContext):
     )
     await call.message.answer("Выберите категорию", reply_markup=reply.hr)
 
-    print(f"id заявки {msg_id}")
-    print(msg_yes)
-    print(msg_go)
-    print(comm_quiz)
     await bot.delete_message(call.message.chat.id, msg_id)
     await bot.delete_message(call.message.chat.id, msg_go+1)
     if comm_quiz == False:
@@ -1105,15 +1387,8 @@ async def push_comm(call: types.CallbackQuery, state: FSMContext):
 @user_private_router.callback_query(F.data == 'back_comm')
 async def stop_comm(call: types.CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    number_q = data.get('number_q')
-    comment = data.get('comment')
-    msg_id = data.get('id_mess')
-    msg_yes = data.get('id_mess_state')
     msg_go = data.get('id_mess_go')
 
-    print(f"id заявки {msg_id}")
-    print(msg_yes)
-    print(msg_go)
     await call.message.answer("Выберите категорию", reply_markup=reply.hr)
 
     await state.update_data(comment = "")

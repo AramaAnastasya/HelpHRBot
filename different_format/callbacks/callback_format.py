@@ -13,6 +13,7 @@ from datetime import date
 from sqlalchemy import insert
 from sqlalchemy import func
 import re
+from handlers.keyboards.inline import init_diff, init_diff_d
 
 from config import DATABASE_URI
 
@@ -130,7 +131,7 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
                                 f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}\n"
                                 f"<b>Формат на данный момент:</b> {data['placenow']}\n"
                                 f"<b>Формат на переход:</b> {data['placewill']}\n"
-                                f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", 
+                                f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}", 
                                 parse_mode="HTML", reply_markup=send_different)
         else:
             result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
@@ -165,7 +166,7 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
                                 f"<b>Сотрудник:</b> {name} \n"
                                 f"<b>Формат на данный момент:</b> {data['placenow']}\n"
                                 f"<b>Формат на переход:</b> {data['placewill']}\n"
-                                f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", 
+                                f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}", 
                                 parse_mode="HTML", reply_markup=send_different)
         session.commit()
         await state.clear()
@@ -226,17 +227,30 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
         message_states_diff[msg_id] = "second"
 
 
-    if id_info.Date_planned_deadline != None and message_states_diff[msg_id] == "first":
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз", table.c.id_telegram == str(call.from_user.id)).first()
+    if id_info.Date_planned_deadline != None and message_states_diff[msg_id] == "first" and existing_record_HR != None:
         reply_markup = send_differentAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    elif id_info.Date_planned_deadline != None and message_states_diff[msg_id] == "second":   
+    elif id_info.Date_planned_deadline != None and message_states_diff[msg_id] == "second" and existing_record_HR != None:   
         reply_markup = send_differentAct_d
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    elif id_info.Date_planned_deadline == None and message_states_diff[msg_id] == "first":
+    elif id_info.Date_planned_deadline == None and message_states_diff[msg_id] == "first" and existing_record_HR != None:
         reply_markup = send_different
         date_planned = ""
-    else:
+    elif id_info.Date_planned_deadline == None and message_states_diff[msg_id] == "second" and existing_record_HR != None:
         reply_markup = send_different_d
+        date_planned = ""
+    elif id_info.Date_planned_deadline != None and message_states_diff[msg_id] == "first" and existing_record_HR == None:
+        reply_markup = init_diff
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline != None and message_states_diff[msg_id] == "second" and existing_record_HR == None:   
+        reply_markup = init_diff_d
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline == None and message_states_diff[msg_id] == "first" and existing_record_HR == None:
+        reply_markup = init_diff
+        date_planned = ""
+    elif id_info.Date_planned_deadline == None and message_states_diff[msg_id] == "second" and existing_record_HR == None:
+        reply_markup = init_diff_d
         date_planned = ""
 
     init_info = session.query(table).filter(table.c.id == number_init).first()
@@ -258,7 +272,7 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
                                     f"<b>Сотрудник:</b> {fullname_employee}\n"
                                     f"<b>Формат на данный момент:</b> {placenow_info}\n"
                                     f"<b>Формат на переход:</b> {placewill_info}\n"
-                                    f"<b>Дата: {date_info}</b>"
+                                    f"<b>Дата подачи заявки:</b> {date_info}"
                                     f"{date_planned}",  
                                     parse_mode="HTML", reply_markup=reply_markup)
         # Обновляем состояние сообщения в "second"
@@ -280,7 +294,7 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
                                     f"<b>Часы работы:</b> {timework_info}\n"
                                     f"<b>Город:</b> {city_info}\n"
                                     f"<b>Причина перевода:</b> {reason_change}\n"
-                                    f"<b>Дата: {date_info}</b>"
+                                    f"<b>Дата подачи заявки:</b> {date_info}"
                                     f"{date_planned}",  
                                     parse_mode="HTML", reply_markup=reply_markup)
         # Возвращаем состояние сообщения к "first"

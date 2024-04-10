@@ -82,6 +82,16 @@ sortedAct_keybordSecond = InlineKeyboardMarkup(
     ]
 )
 
+
+сhoiceStatistic_keybord = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Текущий месяц", callback_data="now_month"),
+            InlineKeyboardButton(text="Выбрать период", callback_data="choice_month")
+        ]
+    ]
+)
+
 set_deadline_tmrw = InlineKeyboardMarkup(
     inline_keyboard=[
         [

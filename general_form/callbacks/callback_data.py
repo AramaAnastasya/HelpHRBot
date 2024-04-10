@@ -13,6 +13,7 @@ from sqlalchemy import update
 from datetime import date, timedelta
 from sqlalchemy import insert
 import re
+from handlers.keyboards.inline import init_gen, init_gen_d, init_quest, init_quest_d
 
 router = Router()
 
@@ -95,7 +96,7 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
                             f"<b>Номер заявки: </b>{new_id}\n"
                             f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
                             f"<b>Суть обращения: </b>{essence_data}\n"
-                            f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", 
+                            f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}", 
                             parse_mode="HTML", reply_markup=send)       
         session.commit()
         await call.message.edit_reply_markup()
@@ -141,17 +142,30 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
         # Если состояния сообщения нет, устанавливаем его в "second"
         message_states[msg_id] = "second"
 
-    if id_info.Date_planned_deadline != None and message_states[msg_id] == "first":
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз", table.c.id_telegram == str(call.from_user.id)).first()
+    if id_info.Date_planned_deadline != None and message_states[msg_id] == "first" and existing_record_HR != None:
         reply_markup = sendAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    elif id_info.Date_planned_deadline != None and message_states[msg_id] == "second":   
+    elif id_info.Date_planned_deadline != None and message_states[msg_id] == "second" and existing_record_HR != None:   
         reply_markup = sendAct_d
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    elif id_info.Date_planned_deadline == None and message_states[msg_id] == "first":
+    elif id_info.Date_planned_deadline == None and message_states[msg_id] == "first" and existing_record_HR != None:
         reply_markup = send
         date_planned = ""
-    else:
+    elif id_info.Date_planned_deadline == None and message_states[msg_id] == "second" and existing_record_HR != None:
         reply_markup = send_d
+        date_planned = ""
+    elif id_info.Date_planned_deadline != None and message_states[msg_id] == "first" and existing_record_HR == None:
+        reply_markup = init_gen
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline != None and message_states[msg_id] == "second" and existing_record_HR == None:   
+        reply_markup = init_gen_d
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline == None and message_states[msg_id] == "first" and existing_record_HR == None:
+        reply_markup = init_gen
+        date_planned = ""
+    elif id_info.Date_planned_deadline == None and message_states[msg_id] == "second" and existing_record_HR == None:
+        reply_markup = init_gen_d
         date_planned = ""
 
     if msg_id in message_states and message_states[msg_id] == "first":
@@ -162,7 +176,7 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
                                     f"<b>Номер заявки: </b>{number_q}\n"
                                     f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
                                     f"<b>Суть обращение: </b> {essence_que}\n"
-                                    f"<b>Дата: </b>{date_info}"
+                                    f"<b>Дата подачи заявки: </b>{date_info}"
                                     f"{date_planned}", 
                                     reply_markup=reply_markup)
         # Обновляем состояние сообщения в "second"
@@ -180,7 +194,7 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
                                     f"<b>Почта: </b>{email_init}\n"
                                     f"<b>Суть обращение: </b> {essence_que}\n"
                                     f"<b>Ожидаемый результат: </b> {expect_res}\n"
-                                    f"<b>Дата: </b>{date_info}"
+                                    f"<b>Дата подачи заявки: </b>{date_info}"
                                     f"{date_planned}", 
                                     reply_markup=reply_markup)
         # Возвращаем состояние сообщения к "first"
@@ -232,7 +246,7 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
                             f"<b>Номер вопроса: </b>{new_id}\n"
                             f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
                             f"<b>Суть вопроса: </b>{quiz_data}\n"
-                            f"<b>Дата:</b> {today.strftime('%Y-%m-%d')}", parse_mode="HTML", reply_markup=sendquiz)   
+                            f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}", parse_mode="HTML", reply_markup=sendquiz)   
 
         session.commit()
         await call.message.edit_reply_markup()
@@ -277,19 +291,31 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
         message_states_quiz[msg_id] = "second"
 
 
-    if id_info.Date_planned_deadline != None and message_states_quiz[msg_id] == "first":
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз", table.c.id_telegram == str(call.from_user.id)).first()
+    if id_info.Date_planned_deadline != None and message_states_quiz[msg_id] == "first" and existing_record_HR != None:
         reply_markup = sendquizAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    elif id_info.Date_planned_deadline != None and message_states_quiz[msg_id] == "second":   
+    elif id_info.Date_planned_deadline != None and message_states_quiz[msg_id] == "second" and existing_record_HR != None:   
         reply_markup = sendquizAct_d
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
-    elif id_info.Date_planned_deadline == None and message_states_quiz[msg_id] == "first":
+    elif id_info.Date_planned_deadline == None and message_states_quiz[msg_id] == "first" and existing_record_HR != None:
         reply_markup = sendquiz
         date_planned = ""
-    else:
+    elif id_info.Date_planned_deadline == None and message_states_quiz[msg_id] == "second" and existing_record_HR != None:
         reply_markup = sendquiz_d
         date_planned = ""
-
+    elif id_info.Date_planned_deadline != None and message_states_quiz[msg_id] == "first" and existing_record_HR == None:
+        reply_markup = init_quest
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline != None and message_states_quiz[msg_id] == "second" and existing_record_HR == None:   
+        reply_markup = init_quest_d
+        date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
+    elif id_info.Date_planned_deadline == None and message_states_quiz[msg_id] == "first" and existing_record_HR == None:
+        reply_markup = init_quest
+        date_planned = ""
+    elif id_info.Date_planned_deadline == None and message_states_quiz[msg_id] == "second" and existing_record_HR == None:
+        reply_markup = init_quest_d
+        date_planned = ""
 
     if msg_id in message_states_quiz and message_states_quiz[msg_id] == "first":
         await bot.edit_message_text(chat_id=call.from_user.id,
@@ -299,7 +325,7 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
                                     f"<b>Номер вопроса: </b>{number_q}\n"
                                     f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
                                     f"<b>Суть вопроса: </b>{essence_que}\n"
-                                    f"<b>Дата:</b> {date_info}"
+                                    f"<b>Дата подачи заявки:</b> {date_info}"
                                     f"{date_planned}", 
                                     parse_mode="HTML", reply_markup=reply_markup)  
         # Обновляем состояние сообщения в "second"
@@ -317,7 +343,7 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
                                     f"<b>Почта: </b>{email_init}\n"
                                     f"<b>Суть вопроса: </b> {essence_que}\n"
                                     f"<b>Ожидаемый результат: </b> {expect_res}\n"
-                                    f"<b>Дата: </b>{date_info}"
+                                    f"<b>Дата подачи заявки: </b>{date_info}"
                                     f"{date_planned}",
                                     reply_markup=reply_markup)
         # Возвращаем состояние сообщения к "first"
@@ -338,9 +364,7 @@ async def deadline_message(call: types.CallbackQuery, bot: Bot, state:FSMContext
     await state.update_data(id_mess = msg_id)
     await state.update_data(number_q = number_q)
     await state.update_data(type_quiz = True)
-    print("зашел")
-    print(msg_id)
-    print(number_q)
+
     await nav_cal_handler(call.message) 
 
 @router.callback_query(F.data == 'nohrquiz')
