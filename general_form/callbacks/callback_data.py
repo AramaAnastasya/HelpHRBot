@@ -365,7 +365,7 @@ async def deadline_message(call: types.CallbackQuery, bot: Bot, state:FSMContext
     await state.update_data(number_q = number_q)
     await state.update_data(type_quiz = True)
 
-    await nav_cal_handler(call.message) 
+    await nav_cal_handler(call.message, state) 
 
 @router.callback_query(F.data == 'nohrquiz')
 async def nohr(call: types.CallbackQuery, bot: Bot, state: FSMContext):

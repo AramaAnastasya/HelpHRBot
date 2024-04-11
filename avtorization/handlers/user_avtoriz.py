@@ -49,8 +49,6 @@ async def cmd_is(message: types.Message, state: FSMContext):
             phone_number = '7' + phone_number[1:]
         existing_record_HR = session.query(table).filter(table.c.Phone_number == phone_number,table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()
         existing_record = session.query(table).filter(table.c.Phone_number == phone_number).first()
-        print(existing_record)
-        print(existing_record_HR)
         # Авторизация по контакту HR
         if existing_record_HR:
             session.execute(

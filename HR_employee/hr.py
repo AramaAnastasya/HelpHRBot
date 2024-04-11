@@ -1045,78 +1045,24 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
 
     await callback.message.answer(text=text, reply_markup=reply.hr, parse_mode='HTML')
 
-# Состояния для FSM
-class CalendarStates(StatesGroup):
-    start_date = State()
-    startSave_date = State()
-    end_date = State()
-
     
 # Вывод cтатистики по заявкам и вопросм на выбранный период
 @user_private_router.callback_query(F.data == "choice_month")
 async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
-    await nav_cal_handler1(callback.message)
+    await nav_cal_handler1(callback.message, state)
 
     
-# @user_private_router.callback_query(SimpleCalendarCallback.filter())
-# async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callback_data: CallbackData,  state: FSMContext):
-#     data = await state.get_data()
-#     start_date = data.get('start_date')
-#     start_dat = data.get('startSave_date')
-#     end_date = data.get('end_date')
-#     user_data = await state.get_data()
-#     now = datetime.now()
-#     calendar = SimpleCalendar(
-#         locale=await get_user_locale(callback_query.from_user), show_alerts=True
-#     )
-#     calendar.set_dates_range(datetime(2024, 1, 1), datetime(int(now.strftime('%Y'))+1, 12, 31))
-#     selected, date = await calendar.process_selection(callback_query, callback_data)
-#     # await callback_query.message.answer(text=f"{date.strftime("%d-%m-%Y")}", parse_mode='HTML')
-#     if selected:
-#         if start_date == None:
-#             await state.update_data(start_date = date)
-#             await state.update_data(startSave_date = date)
-#             await nav_cal_handler1(callback_query.message)
-#             print(start_dat)
-#             print('111111')
-#         else:
-#         # Здесь можно установить состояние для даты окончания вручную
-#             await state.update_data(start_date = None)
-#             # await state.update_data(end_date = date)
-#             print(date)
-#             print('22222')
-#             start_dat = data.get('startSave_date')
-#             # end_date = data.get('end_date')
-#             # print(start_dat, end_date)
-#             if start_dat != None:
-#                 session = Session()
-#                 # text = (f"Статистика заявок на <b>{now.strftime('%B')} {now.strftime('%Y')}</b> год\n").encode('utf-8').decode('utf-8')
-#                 text = f"Статистика заявок на период с <b>{start_dat.strftime('%d-%m-%Y')}</b> по <b>{date.strftime('%d-%m-%Y')}</b>\n"
-#                 # Выберите данные из таблицы с использованием фильтрации
-#                 count_Quest = session.query(table_question).filter(table_question.c.Date_actual_deadline != None, table_question.c.Date_actual_deadline >= start_dat, table_question.c.Date_actual_deadline <= date).order_by(table_question.c.Date_application).count()
-#                 text += f"Количеcтво вопросов: <b>{count_Quest if count_Quest != 0 else 'нет'}</b>\n"
-#                 countGener_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_dat, table_application.c.Date_actual_deadline <= date, table_application.c.ID_Class_application == 4).order_by(table_application.c.Date_application).count()
-#                 text += f"Количеcтво заявок по общей форме: <b>{countGener_App if countGener_App != 0 else 'нет'}</b>\n"
-#                 countTransf_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_dat, table_application.c.Date_actual_deadline <= date, table_application.c.ID_Class_application == 1).order_by(table_application.c.Date_application).count()
-#                 text += f"Количеcтво заявок на перевод: <b>{countTransf_App if countTransf_App != 0 else 'нет'}</b>\n"
-#                 countZP_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_dat, table_application.c.Date_actual_deadline <= date, table_application.c.ID_Class_application == 3).order_by(table_application.c.Date_application).count()
-#                 text += f"Количеcтво заявок на перевод ЗП: <b>{countZP_App if countZP_App != 0 else 'нет'}</b>\n"
-#                 countDiffFor_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_dat, table_application.c.Date_actual_deadline <= date, table_application.c.ID_Class_application == 2).order_by(table_application.c.Date_application).count()
-#                 text += f"Количеcтво заявок на перевод на другой формат работы: <b>{countDiffFor_App if countDiffFor_App != 0 else 'нет'}</b>"
-#                 session.close()
-#                 print(text)
-#                 await callback_query.message.answer(text=text, reply_markup=reply.hr, parse_mode='HTML')
-
-
-
-
-async def nav_cal_handler1(message: Message):
+async def nav_cal_handler1(message: Message, state:FSMContext):
+    await state.update_data(type_calendar = True)
+    data = await state.get_data()
+    type_calendar = data.get('type_calendar')
     await bot.edit_message_reply_markup(
         chat_id=message.chat.id,
         message_id=message.message_id,
         reply_markup=await SimpleCalendar(locale='ru').start_calendar()
     )     
+
 
 
 

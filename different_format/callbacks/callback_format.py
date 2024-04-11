@@ -100,7 +100,6 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
         name = data.get('search_name')
         division = data.get('search_division')
         post = data.get('search_post')
-        print("a")
         last_id = session.query(func.max(application.c.id)).scalar()
         new_id = last_id + 1
         if search == False:
