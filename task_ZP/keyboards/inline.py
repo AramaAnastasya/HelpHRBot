@@ -56,3 +56,18 @@ send_zpAct_d = InlineKeyboardMarkup(
     ]
 )
 
+changeInf = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(text="Сотрудник", callback_data="search_changed")        
+        ],
+        [
+            InlineKeyboardButton(text="Действующая сумма", callback_data="current_amount_change"),
+            InlineKeyboardButton(text="Предлагаемая сумма", callback_data="proposed_amount_change")
+        ],
+        [
+            InlineKeyboardButton(text="Причина перевода", callback_data="reasons_change")
+
+        ]
+    ]
+)

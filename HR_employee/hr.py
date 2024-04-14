@@ -1033,14 +1033,18 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
     # Выберите данные из таблицы с использованием фильтрации
     count_Quest = session.query(table_question).filter(table_question.c.Date_actual_deadline != None, table_question.c.Date_actual_deadline >= start_of_month_date_only).order_by(table_question.c.Date_application).count()
     text += f"Количеcтво вопросов: <b>{count_Quest if count_Quest != 0 else 'нет'}</b>\n"
-    countGener_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 4).order_by(table_application.c.Date_application).count()
+    countGener_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 4).count()
     text += f"Количеcтво заявок по общей форме: <b>{countGener_App if countGener_App != 0 else 'нет'}</b>\n"
-    countTransf_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 1).order_by(table_application.c.Date_application).count()
+    countTransf_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 1).count()
     text += f"Количеcтво заявок на перевод: <b>{countTransf_App if countTransf_App != 0 else 'нет'}</b>\n"
-    countZP_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 3).order_by(table_application.c.Date_application).count()
+    countZP_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 3).count()
     text += f"Количеcтво заявок на перевод ЗП: <b>{countZP_App if countZP_App != 0 else 'нет'}</b>\n"
-    countDiffFor_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 2).order_by(table_application.c.Date_application).count()
-    text += f"Количеcтво заявок на перевод на другой формат работы: <b>{countDiffFor_App if countDiffFor_App != 0 else 'нет'}</b>"
+    countDiffFor_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 2).count()
+    text += f"Количеcтво заявок на перевод на другой формат работы: <b>{countDiffFor_App if countDiffFor_App != 0 else 'нет'}</b>\n"
+    countOverdue_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.Date_planned_deadline < table_application.c.Date_actual_deadline).count()
+    text += f"\nКоличество просроченных заявок: <b>{countOverdue_App if countOverdue_App != 0 else 'нет'}</b>\n"
+    countOverdue_Quest = session.query(table_question).filter(table_question.c.Date_actual_deadline != None, table_question.c.Date_actual_deadline >= start_of_month_date_only, table_question.c.Date_planned_deadline < table_question.c.Date_actual_deadline).count()
+    text += f"Количество просроченных вопросов <b> {countOverdue_Quest if countOverdue_Quest != 0 else 'нет'}</b>"
     session.close()
 
     await callback.message.answer(text=text, reply_markup=reply.hr, parse_mode='HTML')
@@ -1055,8 +1059,6 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
     
 async def nav_cal_handler1(message: Message, state:FSMContext):
     await state.update_data(type_calendar = True)
-    data = await state.get_data()
-    type_calendar = data.get('type_calendar')
     await bot.edit_message_reply_markup(
         chat_id=message.chat.id,
         message_id=message.message_id,

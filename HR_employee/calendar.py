@@ -84,8 +84,7 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
         data = await state.get_data()
         start_date = data.get('start_date')
         start_dat = data.get('startSave_date')
-        end_date = data.get('end_date')
-        user_data = await state.get_data()
+
         now = datetime.now()
         calendar = SimpleCalendar(
             locale=await get_user_locale(callback_query.from_user), show_alerts=True
@@ -107,16 +106,19 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                     # Выберите данные из таблицы с использованием фильтрации
                     count_Quest = session.query(question).filter(question.c.Date_actual_deadline != None, question.c.Date_actual_deadline >= start_dat, question.c.Date_actual_deadline <= date).order_by(question.c.Date_application).count()
                     text += f"Количеcтво вопросов: <b>{count_Quest if count_Quest != 0 else 'нет'}</b>\n"
-                    countGener_App = session.query(application).filter(application.c.Date_actual_deadline != None, application.c.Date_actual_deadline >= start_dat, application.c.Date_actual_deadline <= date, application.c.ID_Class_application == 4).order_by(application.c.Date_application).count()
+                    countGener_App = session.query(application).filter(application.c.Date_actual_deadline != None, application.c.Date_actual_deadline >= start_dat, application.c.Date_actual_deadline <= date, application.c.ID_Class_application == 4).count()
                     text += f"Количеcтво заявок по общей форме: <b>{countGener_App if countGener_App != 0 else 'нет'}</b>\n"
-                    countTransf_App = session.query(application).filter(application.c.Date_actual_deadline != None, application.c.Date_actual_deadline >= start_dat, application.c.Date_actual_deadline <= date, application.c.ID_Class_application == 1).order_by(application.c.Date_application).count()
+                    countTransf_App = session.query(application).filter(application.c.Date_actual_deadline != None, application.c.Date_actual_deadline >= start_dat, application.c.Date_actual_deadline <= date, application.c.ID_Class_application == 1).count()
                     text += f"Количеcтво заявок на перевод: <b>{countTransf_App if countTransf_App != 0 else 'нет'}</b>\n"
-                    countZP_App = session.query(application).filter(application.c.Date_actual_deadline != None, application.c.Date_actual_deadline >= start_dat, application.c.Date_actual_deadline <= date, application.c.ID_Class_application == 3).order_by(application.c.Date_application).count()
+                    countZP_App = session.query(application).filter(application.c.Date_actual_deadline != None, application.c.Date_actual_deadline >= start_dat, application.c.Date_actual_deadline <= date, application.c.ID_Class_application == 3).count()
                     text += f"Количеcтво заявок на перевод ЗП: <b>{countZP_App if countZP_App != 0 else 'нет'}</b>\n"
-                    countDiffFor_App = session.query(application).filter(application.c.Date_actual_deadline != None, application.c.Date_actual_deadline >= start_dat, application.c.Date_actual_deadline <= date, application.c.ID_Class_application == 2).order_by(application.c.Date_application).count()
-                    text += f"Количеcтво заявок на перевод на другой формат работы: <b>{countDiffFor_App if countDiffFor_App != 0 else 'нет'}</b>"
+                    countDiffFor_App = session.query(application).filter(application.c.Date_actual_deadline != None, application.c.Date_actual_deadline >= start_dat, application.c.Date_actual_deadline <= date, application.c.ID_Class_application == 2).count()
+                    text += f"Количеcтво заявок на перевод на другой формат работы: <b>{countDiffFor_App if countDiffFor_App != 0 else 'нет'}</b>\n"
+                    countOverdue_App = session.query(application).filter(application.c.Date_actual_deadline != None, application.c.Date_actual_deadline >= start_dat, application.c.Date_actual_deadline <= date, application.c.Date_actual_deadline > application.c.Date_planned_deadline).count()
+                    text += f"\nКоличество просроченных заявок: <b>{countOverdue_App if countOverdue_App != 0 else 'нет'}</b>\n"
+                    countOverdue_Quest = session.query(question).filter(question.c.Date_actual_deadline != None, question.c.Date_actual_deadline >= start_dat, question.c.Date_actual_deadline <= date, question.c.Date_actual_deadline > question.c.Date_planned_deadline ).count()
+                    text += f"Количество просроченных вопросов <b> {countOverdue_Quest if countOverdue_Quest != 0 else 'нет'}</b>"
                     session.close()
-                    print(text)
                     await callback_query.message.answer(text=text, reply_markup=reply.hr, parse_mode='HTML')
                     await state.update_data(type_calendar = False)
 
@@ -124,10 +126,13 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
         msg_id = data.get('id_mess')
         number_q = data.get('number_q')
         type_quiz = data.get('type_quiz')
-        id_quiz = session.query(question).filter(question.c.id == number_q).first()
-        id_info = session.query(application).filter(application.c.id == number_q).first()
-        user_info_quiz = session.query(table).filter(table.c.id == id_quiz.ID_Initiator).first()
-        user_info = session.query(table).filter(table.c.id == id_info.ID_Initiator).first()
+        if type_quiz == False:
+            id_info = session.query(application).filter(application.c.id == number_q).first()
+            user_info = session.query(table).filter(table.c.id == id_info.ID_Initiator).first()
+        else:
+            id_quiz = session.query(question).filter(question.c.id == number_q).first() 
+            user_info_quiz = session.query(table).filter(table.c.id == id_quiz.ID_Initiator).first()
+
         text_hr = ""
         text_init = ""
         now = datetime.now()
@@ -184,7 +189,7 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                                         message_id=msg_id)
                     
                     id_quiz = session.query(question).filter(question.c.id == number_q).first()
-                    await bot.send_message(user_info.id_telegram,
+                    await bot.send_message(user_info_quiz.id_telegram,
                                             f"{text_init} по <b>общему вопросу</b>\n\n" 
                                             f"<b>Номер вопроса: </b>{number_q}\n"
                                             f"<b>Суть обращения: </b>{id_quiz.Essence_question}\n"
@@ -277,47 +282,54 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                     await bot.send_message(chat_id, "Инициатор не авторизирован", reply_markup=reply.hr)
 
             if (type_quiz == False and user_info.id_telegram != None) or (type_quiz == True and user_info_quiz.id_telegram != None):
-                id_quiz = session.query(question).filter(question.c.id == number_q).first()
+                if type_quiz == False:
+                    id_info = session.query(application).filter(application.c.id == number_q).first()
+                    user_info = session.query(table).filter(table.c.id == id_info.ID_Initiator).first()
+                    current_amount = id_info.Current_amount
+                    suggest_amount = id_info.Suggested_amount
 
-                current_amount = id_info.Current_amount
-                suggest_amount = id_info.Suggested_amount
+                    date_info = id_info.Date_application
+                    number_init = id_info.ID_Initiator
+                    deadline_prob = id_info.End_date_IS
+                    essence_que = id_info.Essence_question
 
-                date_info = id_info.Date_application
-                number_init = id_info.ID_Initiator
-                deadline_prob = id_info.End_date_IS
-                essence_que = id_info.Essence_question
+                    placenow_info = id_info.Current_work_format
+                    placewill_info = id_info.Future_work_format
 
-                placenow_info = id_info.Current_work_format
-                placewill_info = id_info.Future_work_format
+                    id_empl = id_info.ID_Employee
+                    empl_id = session.query(table).filter(table.c.id == id_empl).first()
+                    if id_info.Full_name_employee:
+                        fullname_employee = id_info.Full_name_employee
+                    else:
+                        fullname_employee = f"{empl_id.Surname} {empl_id.Name} {empl_id.Middle_name}"
 
-                id_empl = id_info.ID_Employee
-                empl_id = session.query(table).filter(table.c.id == id_empl).first()
-                if id_info.Full_name_employee:
-                    fullname_employee = id_info.Full_name_employee
+                    if id_info.ID_Division:
+                        id_divis = id_info.ID_Division
+                        divis_id = session.query(table_division).filter(table_division.c.id == id_divis).first()
+                        divis_info = divis_id.Division
+                    else:
+                        divis_info = empl_id.Division
+
+
+                    if id_info.ID_Position:
+                        id_post = id_info.ID_Position
+                        post_id = session.query(table_position).filter(table_position.c.id == id_post).first()
+                        post_info = post_id.Position
+                    else:
+                        post_info = empl_id.Position
+
+
+                    init_info = session.query(table).filter(table.c.id == number_init).first()
+                    
+                    surname_init = init_info.Surname
+                    name_init = init_info.Name
+                    middle_init = init_info.Middle_name
                 else:
-                    fullname_employee = f"{empl_id.Surname} {empl_id.Name} {empl_id.Middle_name}"
-
-                if id_info.ID_Division:
-                    id_divis = id_info.ID_Division
-                    divis_id = session.query(table_division).filter(table_division.c.id == id_divis).first()
-                    divis_info = divis_id.Division
-                else:
-                    divis_info = empl_id.Division
+                    id_quiz = session.query(question).filter(question.c.id == number_q).first() 
+                    user_info_quiz = session.query(table).filter(table.c.id == id_quiz.ID_Initiator).first()
 
 
-                if id_info.ID_Position:
-                    id_post = id_info.ID_Position
-                    post_id = session.query(table_position).filter(table_position.c.id == id_post).first()
-                    post_info = post_id.Position
-                else:
-                    post_info = empl_id.Position
-
-
-                init_info = session.query(table).filter(table.c.id == number_init).first()
                 
-                surname_init = init_info.Surname
-                name_init = init_info.Name
-                middle_init = init_info.Middle_name
 
                 if type_quiz == False:
                     target_date = id_info.Date_planned_deadline
@@ -335,68 +347,80 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                         if delta.total_seconds() > 0:
                             await asyncio.sleep(delta.total_seconds())
                         id_info = session.query(application).filter(application.c.id == number_q).first()
-                        if id_info.Date_actual_deadline == None:
-                            await bot.send_message(chat_id,
-                                                text =  
-                                                f"❗<b>Завтра завершится дедлайн</b>❗\n"
-                                                f"<b>Заявка на перевод</b>\n"
-                                                f"<b>Номер заявки: </b>{number_q}\n"
-                                                f"<b>Инициатор:</b> {surname_init} {name_init[0]}. {middle_init[0]}.\n"
-                                                f"<b>Сотрудник:</b> {fullname_employee}, {divis_info}, {post_info}\n"
-                                                f"<b>Дата конца Испытательного Срока:</b> {deadline_prob}.\n"
-                                                f"<b>Дата подачи заявки:</b> {date_info}\n"
-                                                f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
-                                                parse_mode="HTML", reply_markup=set_deadline_tmrw)
+                        date_c = id_info.Date_planned_deadline
+                        date_obj = date_c.strftime('%Y-%m-%d')
+                        if datetime.now().date().strftime('%Y-%m-%d') == date_obj:    
+                            if id_info.Date_actual_deadline == None:
+                                await bot.send_message(chat_id,
+                                                    text =  
+                                                    f"❗<b>Завтра завершится дедлайн</b>❗\n"
+                                                    f"<b>Заявка на перевод</b>\n"
+                                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                                    f"<b>Инициатор:</b> {surname_init} {name_init[0]}. {middle_init[0]}.\n"
+                                                    f"<b>Сотрудник:</b> {fullname_employee}, {divis_info}, {post_info}\n"
+                                                    f"<b>Дата конца Испытательного Срока:</b> {deadline_prob}.\n"
+                                                    f"<b>Дата подачи заявки:</b> {date_info}\n"
+                                                    f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
+                                                    parse_mode="HTML", reply_markup=set_deadline_tmrw)
 
                     elif id_info.ID_Class_application == 2 and id_info.Date_actual_deadline == None:
                         if delta.total_seconds() > 0:
                             await asyncio.sleep(delta.total_seconds())
                         id_info = session.query(application).filter(application.c.id == number_q).first()
-                        if id_info.Date_actual_deadline == None:
-                            await bot.send_message(chat_id,
-                                                text=   
-                                                f"❗<b>Завтра завершится дедлайн</b>❗\n"                                
-                                                f"<b>Заявка на перевод на другой формат работы</b>\n"
-                                                f"<b>Номер заявки: </b>{number_q}\n"
-                                                f"<b>Инициатор:</b> {surname_init} {name_init[0]}. {middle_init[0]}.\n"
-                                                f"<b>Сотрудник:</b> {fullname_employee}\n"
-                                                f"<b>Формат на данный момент:</b> {placenow_info}\n"
-                                                f"<b>Формат на переход:</b> {placewill_info}\n"
-                                                f"<b>Дата: {date_info}</b>\n"
-                                                f"<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}", 
-                                                parse_mode="HTML", reply_markup=set_deadline_tmrw)   
+                        date_c = id_info.Date_planned_deadline
+                        date_obj = date_c.strftime('%Y-%m-%d')
+                        if datetime.now().date().strftime('%Y-%m-%d') == date_obj:    
+                            if id_info.Date_actual_deadline == None:
+                                await bot.send_message(chat_id,
+                                                    text=   
+                                                    f"❗<b>Завтра завершится дедлайн</b>❗\n"                                
+                                                    f"<b>Заявка на перевод на другой формат работы</b>\n"
+                                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                                    f"<b>Инициатор:</b> {surname_init} {name_init[0]}. {middle_init[0]}.\n"
+                                                    f"<b>Сотрудник:</b> {fullname_employee}\n"
+                                                    f"<b>Формат на данный момент:</b> {placenow_info}\n"
+                                                    f"<b>Формат на переход:</b> {placewill_info}\n"
+                                                    f"<b>Дата: {date_info}</b>\n"
+                                                    f"<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}", 
+                                                    parse_mode="HTML", reply_markup=set_deadline_tmrw)   
                     elif id_info.ID_Class_application == 3 and id_info.Date_actual_deadline == None:
                         if delta.total_seconds() > 0:
                             await asyncio.sleep(delta.total_seconds())
                         id_info = session.query(application).filter(application.c.id == number_q).first()
-                        if id_info.Date_actual_deadline == None:
-                            await bot.send_message(chat_id,
-                                                text=     
-                                                f"❗<b>Завтра завершится дедлайн</b>❗\n"                              
-                                                f"<b>Заявка на согласование заработной платы</b>\n"
-                                                f"<b>Номер заявки: </b>{number_q}\n"
-                                                f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
-                                                f"<b>Сотрудник:</b> {fullname_employee}\n"
-                                                f"<b>Действующая сумма:</b> {current_amount}\n"
-                                                f"<b>Предлагаемая сумма:</b> {suggest_amount}\n"
-                                                f"<b>Дата подачи заявки:</b> {date_info}\n"
-                                                f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
-                                                parse_mode="HTML", reply_markup=set_deadline_tmrw)
+                        date_c = id_info.Date_planned_deadline
+                        date_obj = date_c.strftime('%Y-%m-%d')
+                        if datetime.now().date().strftime('%Y-%m-%d') == date_obj:    
+                            if id_info.Date_actual_deadline == None:
+                                await bot.send_message(chat_id,
+                                                    text=     
+                                                    f"❗<b>Завтра завершится дедлайн</b>❗\n"                              
+                                                    f"<b>Заявка на согласование заработной платы</b>\n"
+                                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                                    f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
+                                                    f"<b>Сотрудник:</b> {fullname_employee}\n"
+                                                    f"<b>Действующая сумма:</b> {current_amount}\n"
+                                                    f"<b>Предлагаемая сумма:</b> {suggest_amount}\n"
+                                                    f"<b>Дата подачи заявки:</b> {date_info}\n"
+                                                    f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
+                                                    parse_mode="HTML", reply_markup=set_deadline_tmrw)
                     elif id_info.ID_Class_application == 4 and id_info.Date_actual_deadline == None:
                         if delta.total_seconds() > 0:
                             await asyncio.sleep(delta.total_seconds())
                         id_info = session.query(application).filter(application.c.id == number_q).first()
-                        if id_info.Date_actual_deadline == None:
-                            await bot.send_message(chat_id,
-                                                text=      
-                                                f"❗<b>Завтра завершится дедлайн</b>❗\n"                             
-                                                f"<b>Заявка по общей форме</b>\n"
-                                                f"<b>Номер заявки: </b>{number_q}\n"
-                                                f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
-                                                f"<b>Суть обращения: </b> {essence_que}\n"
-                                                f"<b>Дата подачи заявки:</b>{date_info}\n"
-                                                f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
-                                                parse_mode="HTML", reply_markup=set_deadline_tmrw)
+                        date_c = id_info.Date_planned_deadline
+                        date_obj = date_c.strftime('%Y-%m-%d')
+                        if datetime.now().date().strftime('%Y-%m-%d') == date_obj:                            
+                            if id_info.Date_actual_deadline == None:
+                                await bot.send_message(chat_id,
+                                                    text=      
+                                                    f"❗<b>Завтра завершится дедлайн</b>❗\n"                             
+                                                    f"<b>Заявка по общей форме</b>\n"
+                                                    f"<b>Номер заявки: </b>{number_q}\n"
+                                                    f"<b>Инициатор: </b>{surname_init} {name_init[0]}. {middle_init[0]}.\n"
+                                                    f"<b>Суть обращения: </b> {essence_que}\n"
+                                                    f"<b>Дата подачи заявки:</b>{date_info}\n"
+                                                    f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
+                                                    parse_mode="HTML", reply_markup=set_deadline_tmrw)
                 else:
                     target_date = id_quiz.Date_planned_deadline
                     day_before = target_date - timedelta(days=1)
@@ -407,7 +431,7 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                         day_before = day_before - timedelta(days=2)
 
                     # Добавляем к целевой дате один день и устанавливаем время на 10:00 утра
-                    target_datetime = datetime(day_before.year, day_before.month, day_before.day, 10, 0 , 0)
+                    target_datetime = datetime(target_date.year, target_date.month, target_date.day, 10, 0, 0)
 
                     # Вычисляем разницу между текущим временем и целевым временем
                     delta = target_datetime - datetime.now()
@@ -415,18 +439,21 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                     if delta.total_seconds() > 0 and id_quiz.Date_actual_deadline == None:
                         await asyncio.sleep(delta.total_seconds())
                     id_quiz = session.query(question).filter(question.c.id == number_q).first()
-                    if id_quiz.Date_actual_deadline == None:
-                        essense_que_quiz = id_quiz.Essence_question
-                        await bot.send_message(chat_id,
-                                                f"❗<b>Завтра завершится дедлайн</b>❗\n"                              
-                                                f"<b>Вопрос</b>\n"
-                                                f"<b>Номер вопроса: </b>{number_q}\n"
-                                                f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
-                                                f"<b>Суть вопроса: </b>{essense_que_quiz}\n"
-                                                f"<b>Дата подачи заявки:</b> {id_quiz.Date_application}\n"
-                                                f"<b>Дата планового дедлайна:</b> {id_quiz.Date_planned_deadline}", 
-                                                parse_mode="HTML", reply_markup=set_deadline_tmrw_quiz)  
-                        await state.update_data(type_quiz = False)
+                    date_c = id_quiz.Date_planned_deadline
+                    date_obj = date_c.strftime('%Y-%m-%d')
+                    if datetime.now().date().strftime('%Y-%m-%d') == date_obj:
+                        if id_quiz.Date_actual_deadline == None:
+                            essense_que_quiz = id_quiz.Essence_question
+                            await bot.send_message(chat_id,
+                                                    f"❗<b>Завтра завершится дедлайн</b>❗\n"                              
+                                                    f"<b>Вопрос</b>\n"
+                                                    f"<b>Номер вопроса: </b>{number_q}\n"
+                                                    f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
+                                                    f"<b>Суть вопроса: </b>{essense_que_quiz}\n"
+                                                    f"<b>Дата подачи заявки:</b> {id_quiz.Date_application}\n"
+                                                    f"<b>Дата планового дедлайна:</b> {id_quiz.Date_planned_deadline}", 
+                                                    parse_mode="HTML", reply_markup=set_deadline_tmrw_quiz)  
+                            await state.update_data(type_quiz = False)
                 
 
 
@@ -437,39 +464,41 @@ async def send_message_time(bot:Bot, state: FSMContext):
     type_quiz = data.get('type_quiz')
     number_q = data.get('number_q')
 
-    id_quiz = session.query(question).filter(question.c.id == number_q).first()
-    id_info = session.query(application).filter(application.c.id == number_q).first()
-    text = f"<b>Сотрудник: </b>"
-    if id_info.ID_Employee == 1 and id_info.ID_Class_application != 4:
-        result_Division = session.query(table_division).filter(table_division.c.id == id_info.ID_Division).first()
-        resultPositiong = session.query(table_position).filter(table_position.c.id == id_info.ID_Position).first()
-        text += f"{id_info.Full_name_employee}, {result_Division.Division}, {resultPositiong.Position}\n"               
-    elif id_info.ID_Employee != 1 and id_info.ID_Class_application != 4:
-        employee_info = session.query(table).filter(table.c.id == id_info.ID_Employee).first()
-        text += f"{employee_info.Surname} {employee_info.Name} {employee_info.Middle_name}, {employee_info.Division}, {employee_info.Position}\n"
-
     if type_quiz == True:
+        id_quiz = session.query(question).filter(question.c.id == number_q).first()
         target_date = id_quiz.Middle_deadline
-
         target_datetime = datetime(target_date.year, target_date.month, target_date.day, 10, 0, 0)
         delta = target_datetime - datetime.now()
 
         if delta.total_seconds() > 0 and id_quiz.Date_actual_deadline == None:    
-            await asyncio.sleep(delta.total_seconds())   
+            await asyncio.sleep(delta.total_seconds()) 
         id_quiz = session.query(question).filter(question.c.id == number_q).first()
-        if id_quiz.Date_actual_deadline == None:
-            user_info = session.query(table).filter(table.c.id == id_quiz.ID_Initiator).first()
-            await bot.send_message(existing_record_HR.id_telegram, 
-                                f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
-                                f"Вопрос\n" 
-                                f"<b>Номер вопроса: </b>{number_q}\n"
-                                f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
-                                f"<b>Суть вопроса: </b>{id_quiz.Essence_question}\n"
-                                f"<b>Дата подачи заявки:</b> {id_quiz.Date_application}\n"
-                                f"<b>Дата планового дедлайна:</b> {id_quiz.Date_planned_deadline}", 
-                                parse_mode="HTML", reply_markup=set_deadline_tmrw_quiz)     
+        date_c = id_quiz.Middle_deadline
+        date_obj = date_c.strftime('%Y-%m-%d')
+        if datetime.now().date().strftime('%Y-%m-%d') == date_obj:                
+            if id_quiz.Date_actual_deadline == None:
+                user_info = session.query(table).filter(table.c.id == id_quiz.ID_Initiator).first()
+                await bot.send_message(existing_record_HR.id_telegram, 
+                                    f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
+                                    f"Вопрос\n" 
+                                    f"<b>Номер вопроса: </b>{number_q}\n"
+                                    f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
+                                    f"<b>Суть вопроса: </b>{id_quiz.Essence_question}\n"
+                                    f"<b>Дата подачи заявки:</b> {id_quiz.Date_application}\n"
+                                    f"<b>Дата планового дедлайна:</b> {id_quiz.Date_planned_deadline}", 
+                                    parse_mode="HTML", reply_markup=set_deadline_tmrw_quiz)     
 
     else:
+        id_info = session.query(application).filter(application.c.id == number_q).first()
+        text = f"<b>Сотрудник: </b>"
+        if id_info.ID_Employee == 1 and id_info.ID_Class_application != 4:
+            result_Division = session.query(table_division).filter(table_division.c.id == id_info.ID_Division).first()
+            resultPositiong = session.query(table_position).filter(table_position.c.id == id_info.ID_Position).first()
+            text += f"{id_info.Full_name_employee}, {result_Division.Division}, {resultPositiong.Position}\n"               
+        elif id_info.ID_Employee != 1 and id_info.ID_Class_application != 4:
+            employee_info = session.query(table).filter(table.c.id == id_info.ID_Employee).first()
+            text += f"{employee_info.Surname} {employee_info.Name} {employee_info.Middle_name}, {employee_info.Division}, {employee_info.Position}\n"
+
         target_date = id_info.Middle_deadline
         # Добавляем к целевой дате один день и устанавливаем время на 10:00 утра
         target_datetime = datetime(target_date.year, target_date.month, target_date.day, 10, 0, 0)
@@ -480,60 +509,73 @@ async def send_message_time(bot:Bot, state: FSMContext):
             if delta.total_seconds() > 0:
                 await asyncio.sleep(delta.total_seconds())   
             id_info = session.query(application).filter(application.c.id == number_q).first()
-            if id_info.Date_actual_deadline == None: 
-                await bot.send_message(existing_record_HR.id_telegram,
-                                    f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
-                                    f"Заявка по общей форме\n" 
-                                    f"<b>Номер заявки: </b>{number_q}\n"
-                                    f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
-                                    f"<b>Суть обращение: </b> {id_info.essence_question}\n"
-                                    f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
-                                    f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
-                                    parse_mode="HTML", reply_markup=set_deadline_tmrw)     
+            date_c = id_info.Middle_deadline
+            date_obj = date_c.strftime('%Y-%m-%d')
+            if datetime.now().date().strftime('%Y-%m-%d') == date_obj:
+                if id_info.Date_actual_deadline == None: 
+                    await bot.send_message(existing_record_HR.id_telegram,
+                                        f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
+                                        f"Заявка по общей форме\n" 
+                                        f"<b>Номер заявки: </b>{number_q}\n"
+                                        f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
+                                        f"<b>Суть обращения: </b> {id_info.Essence_question}\n"
+                                        f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
+                                        f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
+                                        parse_mode="HTML", reply_markup=set_deadline_tmrw)     
         elif id_info.ID_Class_application == 1 and id_info.Date_actual_deadline == None:
             if delta.total_seconds() > 0:
                 await asyncio.sleep(delta.total_seconds())   
             id_info = session.query(application).filter(application.c.id == number_q).first()
-            if id_info.Date_actual_deadline == None: 
-                await bot.send_message(existing_record_HR.id_telegram,
-                                    f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
-                                    f"Заявка на перевод\n" 
-                                    f"<b>Номер заявки: </b>{number_q}\n"
-                                    f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
-                                    f"{text}"
-                                    f"<b>Дата конца Испытательного Срока:</b> {id_info.End_date_IS}.\n"
-                                    f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
-                                    f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
-                                    parse_mode="HTML", reply_markup=set_deadline_tmrw)     
+            date_c = id_info.Middle_deadline
+            date_obj = date_c.strftime('%Y-%m-%d')
+            if datetime.now().date().strftime('%Y-%m-%d') == date_obj:
+                if id_info.Date_actual_deadline == None: 
+                    await bot.send_message(existing_record_HR.id_telegram,
+                                        f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
+                                        f"Заявка на перевод\n" 
+                                        f"<b>Номер заявки: </b>{number_q}\n"
+                                        f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
+                                        f"{text}"
+                                        f"<b>Дата конца Испытательного Срока:</b> {id_info.End_date_IS}.\n"
+                                        f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
+                                        f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
+                                        parse_mode="HTML", reply_markup=set_deadline_tmrw)     
         elif id_info.ID_Class_application == 2 and id_info.Date_actual_deadline == None:
             if delta.total_seconds() > 0:
                 await asyncio.sleep(delta.total_seconds())   
             id_info = session.query(application).filter(application.c.id == number_q).first()
-            if id_info.Date_actual_deadline == None: 
-                await bot.send_message(existing_record_HR.id_telegram,
-                                    f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
-                                    f"Заявка на перевод на другой формат работы\n" 
-                                    f"<b>Номер заявки: </b>{number_q}\n"
-                                    f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
-                                    f"{text}"
-                                    f"<b>Формат на данный момент:</b> {id_info.Current_work_format}\n"
-                                    f"<b>Формат на переход:</b> {id_info.Future_work_format}\n"
-                                    f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
-                                    f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
-                                    parse_mode="HTML", reply_markup=set_deadline_tmrw)     
+            date_c = id_info.Middle_deadline
+            date_obj = date_c.strftime('%Y-%m-%d')
+            if datetime.now().date().strftime('%Y-%m-%d') == date_obj:
+                    if id_info.Date_actual_deadline == None: 
+                        await bot.send_message(existing_record_HR.id_telegram,
+                                            f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
+                                            f"Заявка на перевод на другой формат работы\n" 
+                                            f"<b>Номер заявки: </b>{number_q}\n"
+                                            f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
+                                            f"{text}"
+                                            f"<b>Формат на данный момент:</b> {id_info.Current_work_format}\n"
+                                            f"<b>Формат на переход:</b> {id_info.Future_work_format}\n"
+                                            f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
+                                            f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
+                                            parse_mode="HTML", reply_markup=set_deadline_tmrw)     
         elif id_info.ID_Class_application == 3 and id_info.Date_actual_deadline == None:
             if delta.total_seconds() > 0:
                 await asyncio.sleep(delta.total_seconds())   
             id_info = session.query(application).filter(application.c.id == number_q).first()
-            if id_info.Date_actual_deadline == None: 
-                await bot.send_message(existing_record_HR.id_telegram,
-                                    f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
-                                    f"Заявка на согласование заработной платы\n" 
-                                    f"<b>Номер заявки: </b>{number_q}\n"
-                                    f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
-                                    f"{text}"
-                                    f"<b>Действующая сумма:</b> {id_info.Current_amount}\n"
-                                    f"<b>Предлагаемая сумма:</b> {id_info.Suggest_amount}\n"
-                                    f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
-                                    f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
-                                    parse_mode="HTML", reply_markup=set_deadline_tmrw)   
+            date_c = id_info.Middle_deadline
+            date_obj = date_c.strftime('%Y-%m-%d')
+            if datetime.now().date().strftime('%Y-%m-%d') == date_obj:
+                if id_info.Date_actual_deadline == None: 
+                    await bot.send_message(existing_record_HR.id_telegram,
+                                        f"⚡️<b>Оповещение о середине дедлайна</b>⚡️\n"
+                                        f"Заявка на согласование заработной платы\n" 
+                                        f"<b>Номер заявки: </b>{number_q}\n"
+                                        f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
+                                        f"{text}"
+                                        f"<b>Действующая сумма:</b> {id_info.Current_amount}\n"
+                                        f"<b>Предлагаемая сумма:</b> {id_info.Suggest_amount}\n"
+                                        f"<b>Дата подачи заявки:</b> {id_info.Date_application}\n"
+                                        f"<b>Дата планового дедлайна:</b> {id_info.Date_planned_deadline}", 
+                                        parse_mode="HTML", reply_markup=set_deadline_tmrw)   
+                

@@ -95,8 +95,8 @@ async def staff_post(message: types.Message, state: FSMContext):
                         "Запрос введен верно?",
                         reply_markup=get_callback_btns(
                         btns={
-                        'Данные верны': f'yes_application',
-                        'Изменить данные': f'no_application',
+                        'Да': f'yes_application',
+                        'Нет': f'no_application',
                         }   
                 )
             )
@@ -116,7 +116,6 @@ async def staff_post(message: types.Message, state: FSMContext):
 @user_private_router.callback_query(F.data.startswith("yes_application"))
 async def yes_app(callback:types.CallbackQuery):
     await callback.message.delete_reply_markup()
-    await bot.send_message(callback.from_user.id, "Вы подтвердили правильность введенных данных.")
     await callback.message.answer(
         "Отправить заявку HR?",      
         reply_markup=get_callback_btns(

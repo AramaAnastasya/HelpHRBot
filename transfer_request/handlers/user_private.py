@@ -44,7 +44,7 @@ async def cmd_goals(message: Message, state: FSMContext):
 @user_private_router.message(transferRequest.goals_count)
 async def cmd_goals_loop(message: Message, state: FSMContext):
     if not message.text.isdigit():
-        await message.answer("Введите число.")
+        await message.answer("Введите число")
         return
     elif message.text == "0":
         await message.answer("Количество целей не может быть равно нулю.")

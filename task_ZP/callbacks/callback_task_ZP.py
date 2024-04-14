@@ -84,8 +84,8 @@ async def agreement_ZP(message: types.Message, state: FSMContext):
             "Запрос введен верно?",
             reply_markup=get_callback_btns(
                 btns={
-                'Данные верны': f'yes_task',
-                'Изменить данные': f'no_task',
+                'Да': f'yes_task',
+                'Нет': f'no_task',
                 }   
             )
         )
@@ -98,7 +98,6 @@ async def agreement_ZP(message: types.Message, state: FSMContext):
 @user_private_router.callback_query(F.data.startswith("yes_task"))
 async def yes_app(callback:types.CallbackQuery):
     await callback.message.delete_reply_markup()
-    await bot.send_message(callback.from_user.id, "Вы подтвердили правильность введенных данных.")
     await callback.message.answer(
         "Отправить заявку HR?",      
         reply_markup=get_callback_btns(
@@ -262,10 +261,10 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
         reply_markup = send_zpAct_d
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
     elif id_info.Date_planned_deadline == None and message_states_zp[msg_id] == "first" and existing_record_HR != None:
-        reply_markup = send_zpAct
+        reply_markup = send_zp
         date_planned = ""
     elif id_info.Date_planned_deadline == None and message_states_zp[msg_id] == "second" and existing_record_HR != None:
-        reply_markup = send_zpAct_d
+        reply_markup = send_zp_d
         date_planned = ""
     elif id_info.Date_planned_deadline != None and message_states_zp[msg_id] == "first" and existing_record_HR == None:
         reply_markup = init_zp
@@ -340,14 +339,7 @@ async def no_app(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     await callback.message.answer(
             "Выберите пункт для изменения", 
-            reply_markup=get_callback_btns(
-                btns={
-                    'Сотрудник': f'search_changed',
-                    'Действующая сумма': f'current_amount_change',
-                    'Предлагаемая сумма': f'proposed_amount_change',
-                    'Причины перевода': f'reasons_change',
-                }
-            ),    
+             reply_markup= inline.changeInf   
         )
 
  
@@ -374,7 +366,7 @@ async def current_amount_change(callback:types.CallbackQuery, state:FSMContext):
 async def reasons_change(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     await callback.message.answer(
-        "Введите исправленные <b>причины перевода</b>", 
+        "Введите исправленную <b>причину перевода</b>", 
     )
     await state.set_state(taskZP.reasons)
     await state.update_data(reasons_changed=True)

@@ -112,8 +112,6 @@ changetr = InlineKeyboardMarkup(
         ],
         [
             InlineKeyboardButton(text="Часы работы", callback_data="timeworkedi"),
-        ],
-        [
             InlineKeyboardButton(text="Город", callback_data="cityedi"),
         ],
         [
