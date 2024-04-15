@@ -18,8 +18,6 @@ from filters.chat_types import ChatTypeFilter
 from sqlalchemy import create_engine, MetaData, Table, func
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy import update
-import aioschedule
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import re
 from HR_employee.keyboards.inline import set_deadline_tmrw, set_deadline_tmrw_quiz
 from HR_employee.hr import nav_cal_handler1
