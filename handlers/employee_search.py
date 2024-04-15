@@ -50,9 +50,10 @@ dp = Dispatcher()
 async def transfer_cmd(message: types.Message, state:FSMContext):
     await state.update_data(request="заявка на перевод")
     await message.answer(
-        "Выполните поиск сотрудника или введите его данные вручную",
-        reply_markup=reply.employee_search
+        "Введите <b>ФИО сотрудника</b>\n<i>Пример входных данных:</i> Иванов Иван Иванович",
+        reply_markup=reply.cancel
     )
+    await state.set_state(Employee.search_bd)
     await state.update_data({'search_change': False}) 
 
 @user_private_router.message((F.text.lower() == "заявка на согласование зп"))
@@ -68,21 +69,38 @@ async def task_ZP_cmd(message: types.Message, state:FSMContext):
 async def transfer_format(message: Message, state: FSMContext):
     await state.update_data(request="Заявка на перевод на другой формат работы")
     await message.answer(
-        "Выполните поиск сотрудника или введите его данные вручную",
-        reply_markup=reply.employee_search
+        "Введите <b>ФИО сотрудника</b>\n<i>Пример входных данных:</i> Иванов Иван Иванович",
+        reply_markup=reply.cancel
     )
+    await state.set_state(Employee.search_bd)
     await state.update_data({'search_change': False}) 
 
 @user_private_router.callback_query(F.data.startswith("search_changed"))
 async def search_fio_change(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
-    await callback.message.answer(
+    data = await state.get_data()
+    request_change = data.get('request')
+    if request_change == "заявка на перевод":
+        await callback.message.answer(
+        "Введите <b>ФИО сотрудника</b>\n<i>Пример входных данных:</i> Иванов Иван Иванович",
+        reply_markup=reply.cancel
+        )
+        await state.set_state(Employee.search_bd)
+    if request_change == "заявка на согласование зп":
+        await callback.message.answer(
         "Выполните поиск сотрудника или введите его данные вручную",
         reply_markup=reply.employee_search
     )
+    if request_change == "Заявка на перевод на другой формат работы":
+        await callback.message.answer(
+                "Введите <b>ФИО сотрудника</b>\n<i>Пример входных данных:</i> Иванов Иван Иванович",
+                reply_markup=reply.cancel
+            )
+    await state.set_state(Employee.search_bd)
+    
     await state.update_data({'search_change': True})   
 
-@user_private_router.message((F.text.lower() == "ввести вручную"))
+@user_private_router.message((F.text.lower() == "добавить кандидата"))
 async def cmd_name(message: types.Message, state:FSMContext):
     await message.answer(
         "Введите <b>ФИО сотрудника</b>",
@@ -348,7 +366,7 @@ async def cmd_output(message: Message, state: FSMContext):
         )
     
 
-@user_private_router.message((F.text.lower() == "поиск сотрудника"))
+@user_private_router.message((F.text.lower() == "поиск действующего сотрудника"))
 async def search_name_cmd(message: types.Message, state:FSMContext):
     await message.answer(
         "Введите <b>ФИО сотрудника</b>\n<i>Пример входных данных:</i> Иванов Иван Иванович",
@@ -358,37 +376,46 @@ async def search_name_cmd(message: types.Message, state:FSMContext):
     await state.update_data(search = False)
 
 @user_private_router.message(Employee.search_bd)
-async def cmd_search(message: Message):
+async def cmd_search(message: Message, state: FSMContext):
     # Получите сессию для работы с базой данных
     session = Session()
     emlpoyee_name = message.text.split()
     if len(emlpoyee_name) == 3:
 
         # Получите введенные переменные от пользователя
-        surname = message.text.split()[0]
-        name = message.text.split()[1]
-        middle_name = message.text.split()[2]
+        word1 = message.text.split()[0]
+        word2 = message.text.split()[1]
+        word3 = message.text.split()[2]
+        
         # Выберите данные из таблицы с использованием фильтрации
-        result = session.query(table).filter(table.c.Surname == surname, table.c.Name == name, table.c.Middle_name == middle_name).all()
-        if result:
-            await message.answer(
-                "Совпадения:"
-            )
-            for row in result:
-                # Выведите сообщение с найденными данными и инлайн кнопкой
+        result = session.query(table).all()
+        data = await state.get_data()
+        data["list"] = []
+        
+        for row in result:
+            surname = row.Surname.lower() == word1.lower() or row.Surname.lower() ==  word2.lower() or row.Surname.lower() ==  word3.lower()
+            name = row.Name.lower() ==  word1.lower() or row.Name.lower() == word2.lower() or row.Name.lower() ==  word3.lower()
+            middle_name = row.Middle_name.lower() ==  word1.lower() or row.Middle_name.lower() == word2.lower() or row.Middle_name.lower() ==  word3.lower()
+            if surname == True and name == True and middle_name == True:
+                data["list"].append(row.id)
+        list = data.get("list")
+        if len(list) != 0:
+            for i, empl in enumerate(list):
+                result = session.query(table).filter(table.c.id == empl).first()
                 await message.answer(
-                    f"<b>ФИО:</b> {row.Surname} {row.Name} {row.Middle_name}\n<b>Подразделение: </b>{row.Division}\n<b>Должность:</b> {row.Position}", 
+                    f"<b>ФИО:</b> {result.Surname} {result.Name} {result.Middle_name}\n<b>Подразделение: </b>{result.Division}\n<b>Должность:</b> {result.Position}", 
                     reply_markup=get_callback_btns(
                     btns={
-                        f"Выбрать": f"select_{row.id}"
+                        f"Выбрать": f"select_{result.id}"
                 }
-            ))
-        else:
+                ))    
+        
+        elif len(list) == 0:
             await message.answer(
                 "Совпадения не найдены!"
             )
             await message.answer(
-                "Проверьте поисковые данные."
+                "Проверьте поисковые данные"
             )
         
         # Закройте сессию
@@ -402,6 +429,8 @@ async def cmd_search(message: Message):
 async def choice_employee(callback: types.CallbackQuery, state: FSMContext):
     # Получение номера цели из данных обратного вызова   
     await state.update_data(search_bd = int(callback.data.split("_")[1]))
+    user_data = await state.get_data()
+    search_bd = user_data.get('search_bd')
     data = await state.get_data()
     request_change = data.get('request')
     search_change = data.get('search_change')
@@ -411,7 +440,7 @@ async def choice_employee(callback: types.CallbackQuery, state: FSMContext):
         f"Сотрудник успешно выбран!"
     )
         await callback.message.answer(
-        "Введите <b>дату конца Испытательного Срока</b>",
+        "Введите <b>дату конца Испытательного Срока</b> в формате: <i>01.01.2000</i>",
             reply_markup=reply.cancel
         )
         await state.update_data(is_changed=False)
@@ -439,10 +468,10 @@ async def choice_employee(callback: types.CallbackQuery, state: FSMContext):
         parse_mode="HTML",
         )
     elif search_change == True:
-        await search_cmd(callback.message, state)
         await callback.message.answer(
         f"Сотрудник успешно изменен!" 
-    )
+        )
+        await search_cmd(callback.message, state)
         
 
 

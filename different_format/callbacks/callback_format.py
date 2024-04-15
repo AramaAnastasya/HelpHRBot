@@ -90,19 +90,15 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     session = Session()
     user_id = call.from_user.id
     user_id_str = str(user_id) 
-    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Дрыгин", table.c.Name == "Андрей", table.c.Middle_name == "Владимирович").first()
     user_info = session.query(table).filter(table.c.id_telegram == user_id_str).first()
     if user_info:
         # Получение данных из состояний
         data = await state.get_data()
         search_bd = data.get('search_bd')
-        search = data.get('search')
-        name = data.get('search_name')
-        division = data.get('search_division')
-        post = data.get('search_post')
         last_id = session.query(func.max(application.c.id)).scalar()
         new_id = last_id + 1
-        if search == False:
+        if existing_record_HR:
             result = session.query(table).filter(table.c.id == search_bd).first()
             # 2. Обновление записи в таблице Applications
             application_data = {
@@ -122,9 +118,9 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
             await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
             await bot.send_message(existing_record_HR.id_telegram,
-                                   f"<b>🔔Вам поступила новая заявка</b>")
+                                f"<b>🔔Вам поступила новая заявка</b>")
             await bot.send_message(existing_record_HR.id_telegram, 
-                                 f"<b>Заявка на перевод на другой формат работы</b>\n"
+                                f"<b>Заявка на перевод на другой формат работы</b>\n"
                                 f"<b>Номер заявки: </b>{new_id}\n"
                                 f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
                                 f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}\n"
@@ -132,45 +128,13 @@ async def yesdiff(call: types.CallbackQuery, bot: Bot, state: FSMContext):
                                 f"<b>Формат на переход:</b> {data['placewill']}\n"
                                 f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}", 
                                 parse_mode="HTML", reply_markup=send_different)
+            session.commit()
+            await state.clear()
         else:
-            result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-            resultPositiong = session.query(table_position).filter(table_position.c.Position == str(post)).first()
-            # 2. Обновление записи в таблице Applications
-            application_data = {
-                "ID_Initiator": user_info.id,
-                "ID_Employee": 1,
-                "ID_Class_application": 2,
-                'Full_name_employee': name,
-                'ID_Division': int(division),
-                'ID_Position': resultPositiong.id,
-                'Current_work_format': data['placenow'],
-                'Future_work_format': data['placewill'],
-                'Opening_hours': data['timework'],
-                'City': data['city'],
-                'Cause': data['reason'],
-                "Date_application": today.strftime('%Y-%m-%d'),
-            }
-            session.execute(
-                insert(application).values(application_data)
-            )
-            today = date.today()
-            await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
-            await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
-            await bot.send_message(existing_record_HR.id_telegram,
-                                   f"<b>🔔Вам поступила новая заявка</b>")
-            await bot.send_message(existing_record_HR.id_telegram, 
-                                f"<b>Заявка на перевод на другой формат работы</b>\n"
-                                f"<b>Номер заявки: </b>{new_id}\n"
-                                f"<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
-                                f"<b>Сотрудник:</b> {name} \n"
-                                f"<b>Формат на данный момент:</b> {data['placenow']}\n"
-                                f"<b>Формат на переход:</b> {data['placewill']}\n"
-                                f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}", 
-                                parse_mode="HTML", reply_markup=send_different)
-        session.commit()
-        await state.clear()
+            await bot.send_message(call.from_user.id, "Ошибка в формировании заявки")
+            await bot.send_message(call.from_user.id, "HR не авторизирован", reply_markup=start_kb)
     else:
-        await bot.send_message(call.from_user.id, "Ошибка в формировании заявки.")
+        await bot.send_message(call.from_user.id, "Ошибка в формировании заявки")
         await bot.send_message(call.from_user.id, "Пройдите авторизацию повторно", reply_markup=start_kb)
 
 
@@ -225,8 +189,7 @@ async def unwrap_message_zp(call: types.CallbackQuery, bot: Bot, state: FSMConte
         # Если состояния сообщения нет, устанавливаем его в "second"
         message_states_diff[msg_id] = "second"
 
-
-    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз", table.c.id_telegram == str(call.from_user.id)).first()
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Дрыгин", table.c.Name == "Андрей", table.c.Middle_name == "Владимирович", table.c.id_telegram == str(call.from_user.id)).first()
     if id_info.Date_planned_deadline != None and message_states_diff[msg_id] == "first" and existing_record_HR != None:
         reply_markup = send_differentAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
@@ -329,16 +292,8 @@ async def fill_officenowedit(call: types.CallbackQuery, bot: Bot, state: FSMCont
     search_bd = data.get('search_bd')
     result = session.query(table).filter(table.c.id == search_bd).first()
     resultInitiator = session.query(table).filter(table.c.id_telegram == str(user_id)).first()
-    search = data.get('search')
-    name = data.get('search_name')
-    division = data.get('search_division')
-    post = data.get('search_post')
-    if search == False:
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    else:
-        result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
+
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
     await call.message.edit_reply_markup()
@@ -353,16 +308,7 @@ async def fill_hybridnowedit(call: types.CallbackQuery, bot: Bot, state: FSMCont
     search_bd = data.get('search_bd')
     result = session.query(table).filter(table.c.id == search_bd).first()
     resultInitiator = session.query(table).filter(table.c.id_telegram == str(user_id)).first()
-    search = data.get('search')
-    name = data.get('search_name')
-    division = data.get('search_division')
-    post = data.get('search_post')
-    if search == False:
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    else:
-        result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
     
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
@@ -379,15 +325,7 @@ async def fill_remotelynowedit(call: types.CallbackQuery, bot: Bot, state: FSMCo
     search_bd = data.get('search_bd')
     result = session.query(table).filter(table.c.id == search_bd).first()
     resultInitiator = session.query(table).filter(table.c.id_telegram == str(user_id)).first()
-    search = data.get('search')
-    name = data.get('search_name')
-    division = data.get('search_division')
-    post = data.get('search_post')
-    if search == False:
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    else:
-        result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
 
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
@@ -417,16 +355,8 @@ async def fill_officewilledit(call: types.CallbackQuery, bot: Bot, state: FSMCon
     search_bd = data.get('search_bd')
     result = session.query(table).filter(table.c.id == search_bd).first()
     resultInitiator = session.query(table).filter(table.c.id_telegram == str(user_id)).first()
-    search = data.get('search')
-    name = data.get('search_name')
-    division = data.get('search_division')
-    post = data.get('search_post')
-    if search == False:
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    else:
-        result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
+
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
     await call.message.edit_reply_markup()
@@ -441,16 +371,7 @@ async def fill_hybridwilledit(call: types.CallbackQuery, bot: Bot, state: FSMCon
     search_bd = data.get('search_bd')
     result = session.query(table).filter(table.c.id == search_bd).first()
     resultInitiator = session.query(table).filter(table.c.id_telegram == str(user_id)).first()
-    search = data.get('search')
-    name = data.get('search_name')
-    division = data.get('search_division')
-    post = data.get('search_post')
-    if search == False:
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    else:
-        result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
     
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
@@ -466,17 +387,8 @@ async def fill_remotelywilledit(call: types.CallbackQuery, bot: Bot, state: FSMC
     search_bd = data.get('search_bd')
     result = session.query(table).filter(table.c.id == search_bd).first()
     resultInitiator = session.query(table).filter(table.c.id_telegram == str(user_id)).first()
-    search = data.get('search')
-    name = data.get('search_name')
-    division = data.get('search_division')
-    post = data.get('search_post')
-    if search == False:
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    else:
-        result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    
-    
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
+
     await bot.send_message(call.from_user.id, formatter_text, parse_mode="HTML", reply_markup=cancel)
     await bot.send_message(call.from_user.id,"Запрос введен верно?", reply_markup=yesnotransfer)
     await call.message.edit_reply_markup()

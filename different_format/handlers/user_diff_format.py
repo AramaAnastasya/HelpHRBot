@@ -77,14 +77,6 @@ async def diff_format(message: Message, state:FSMContext):
     result = session.query(table).filter(table.c.id == search_bd).first()
     initiator = data.get('initiator')
     resultInitiator = session.query(table).filter(table.c.id_telegram == str(initiator)).first()
-    search = data.get('search')
-    name = data.get('search_name')
-    division = data.get('search_division')
-    post = data.get('search_post')
-    if search == False:
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
-    else:
-        result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-        formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
+    formatter_text = (f"Ваша заявка на перевод на другой формат работы\n<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Формат на данный момент:</b> {data['placenow']}\n<b>Формат на переход:</b> {data['placewill']}\n<b>Часы работы:</b> {data['timework']}\n<b>Город:</b> {data['city']}\n<b>Причина перевода:</b> {data['reason']}")
     await message.answer(formatter_text, parse_mode="HTML", reply_markup=cancel)
     await message.answer("Запрос введен верно?", reply_markup=inline.yesnotransfer)

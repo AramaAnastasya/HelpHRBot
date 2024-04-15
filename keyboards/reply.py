@@ -60,8 +60,8 @@ start_kb = ReplyKeyboardMarkup(
 employee_search = ReplyKeyboardMarkup(
     keyboard=[
         [
-            KeyboardButton(text="Поиск сотрудника"),
-            KeyboardButton(text="Ввести вручную"),
+            KeyboardButton(text="Поиск действующего сотрудника"),
+            KeyboardButton(text="Добавить кандидата"),
         ],
         [
             KeyboardButton(text="Отменить заявку ❌"),

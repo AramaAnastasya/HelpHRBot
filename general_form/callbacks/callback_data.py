@@ -63,7 +63,7 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     user_id_str = str(user_id)  
 
     user_info = session.query(table).filter(table.c.id_telegram == user_id_str).first()
-    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Дрыгин", table.c.Name == "Андрей", table.c.Middle_name == "Владимирович").first()
     if user_info:
         last_id = session.query(func.max(application.c.id)).scalar()
         new_id = last_id + 1
@@ -141,8 +141,7 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
     if msg_id not in message_states:
         # Если состояния сообщения нет, устанавливаем его в "second"
         message_states[msg_id] = "second"
-
-    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз", table.c.id_telegram == str(call.from_user.id)).first()
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Дрыгин", table.c.Name == "Андрей", table.c.Middle_name == "Владимирович", table.c.id_telegram == str(call.from_user.id)).first()
     if id_info.Date_planned_deadline != None and message_states[msg_id] == "first" and existing_record_HR != None:
         reply_markup = sendAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
@@ -212,7 +211,7 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
     session = Session()
     user_id = call.from_user.id
     user_id_str = str(user_id) 
-    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Дрыгин", table.c.Name == "Андрей", table.c.Middle_name == "Владимирович").first()
     user_info = session.query(table).filter(table.c.id_telegram == user_id_str).first()
     if user_info:
         # Получение данных из состояний
@@ -225,34 +224,37 @@ async def yeshr(call: types.CallbackQuery, bot: Bot, state: FSMContext):
 
         resquiz_data = data.get('resquiz')
         today = date.today()
+        if existing_record_HR:
+            # 2. Обновление записи в таблице Question
+            application_data = {
+                "ID_Initiator": user_info.id,
+                "ID_Employee": 1,
+                "Date_application":today.strftime('%Y-%m-%d'),
+                "Essence_question": quiz_data,
+                "Essence_result": resquiz_data,
+            }
+            session.execute(
+                insert(question).values(application_data)
+            )
+            await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
+            await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
+            await bot.send_message(existing_record_HR.id_telegram,
+                                    f"<b>🔔Вам поступила новая заявка</b>")
+            await bot.send_message(existing_record_HR.id_telegram, 
+                                f"<b>Вопрос</b>\n"
+                                f"<b>Номер вопроса: </b>{new_id}\n"
+                                f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
+                                f"<b>Суть вопроса: </b>{quiz_data}\n"
+                                f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}", parse_mode="HTML", reply_markup=sendquiz)   
 
-        # 2. Обновление записи в таблице Question
-        application_data = {
-            "ID_Initiator": user_info.id,
-            "ID_Employee": 1,
-            "Date_application":today.strftime('%Y-%m-%d'),
-            "Essence_question": quiz_data,
-            "Essence_result": resquiz_data,
-        }
-        session.execute(
-            insert(question).values(application_data)
-        )
-        await bot.send_message(call.from_user.id, "Заявка успешно отправлена!")
-        await bot.send_message(call.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=main)
-        await bot.send_message(existing_record_HR.id_telegram,
-                                   f"<b>🔔Вам поступила новая заявка</b>")
-        await bot.send_message(existing_record_HR.id_telegram, 
-                            f"<b>Вопрос</b>\n"
-                            f"<b>Номер вопроса: </b>{new_id}\n"
-                            f"<b>Инициатор: </b>{user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n"
-                            f"<b>Суть вопроса: </b>{quiz_data}\n"
-                            f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}", parse_mode="HTML", reply_markup=sendquiz)   
-
-        session.commit()
-        await call.message.edit_reply_markup()
-        await state.clear()
+            session.commit()
+            await call.message.edit_reply_markup()
+            await state.clear()
+        else:
+            await bot.send_message(call.from_user.id, "Ошибка в формировании заявки")
+            await bot.send_message(call.from_user.id, "HR не авторизирован", reply_markup=start_kb)
     else:
-        await bot.send_message(call.from_user.id, "Ошибка в формировании заявки.")
+        await bot.send_message(call.from_user.id, "Ошибка в формировании заявки")
         await bot.send_message(call.from_user.id, "Пройдите авторизацию повторно", reply_markup=start_kb)
 
 message_states_quiz = {}
@@ -290,8 +292,7 @@ async def unwrap_message(call: types.CallbackQuery, bot: Bot, state: FSMContext)
         # Если состояния сообщения нет, устанавливаем его в "second"
         message_states_quiz[msg_id] = "second"
 
-
-    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз", table.c.id_telegram == str(call.from_user.id)).first()
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Дрыгин", table.c.Name == "Андрей", table.c.Middle_name == "Владимирович", table.c.id_telegram == str(call.from_user.id)).first()
     if id_info.Date_planned_deadline != None and message_states_quiz[msg_id] == "first" and existing_record_HR != None:
         reply_markup = sendquizAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"

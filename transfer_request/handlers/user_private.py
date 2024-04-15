@@ -26,20 +26,31 @@ dp = Dispatcher()
 
 @user_private_router.message(transferRequest.is_staff)
 async def cmd_goals(message: Message, state: FSMContext):
-    await state.update_data(is_staff=message.text)
-    user_data = await state.get_data()
-    is_change = user_data.get('is_changed')
-    chat_member = await bot.get_chat_member(message.chat.id, message.from_user.id)
-    if is_change == True:   
-        await state.update_data(initiator = chat_member.user.id)
-        await staff_post(message, state)
-        await state.update_data(is_changed=False)
-    else:   
+    date_is = message.text.split('.')
+    for i in date_is:
+        if not i.isdigit():
+            await message.answer("Введите <b>дату конца Испытательного Срока</b> в формате: <i>01.01.2000</i>")
+            return
+    if len(date_is[0]) == 2 and len(date_is[1]) == 2 and len(date_is[2]) == 4:
+        await state.update_data(is_staff=f"{date_is[2]}-{date_is[1]}-{date_is[0]}")
+        user_data = await state.get_data()
+        is_change = user_data.get('is_changed')
+        chat_member = await bot.get_chat_member(message.chat.id, message.from_user.id)
+        if is_change == True:   
+            await state.update_data(initiator = chat_member.user.id)
+            await staff_post(message, state)
+            await state.update_data(is_changed=False)
+        else:   
+            await message.answer(
+                "Введите <b>количество целей</b> на период Испытательного срока",
+                reply_markup=reply.cancel)
+            await state.update_data(goals_count_changed=False)
+            await state.set_state(transferRequest.goals_count)
+    else:
         await message.answer(
-            "Введите <b>количество целей</b> на период Испытательного срока",
-            reply_markup=reply.cancel)
-        await state.update_data(goals_count_changed=False)
-        await state.set_state(transferRequest.goals_count)
+            "Введите <b>дату конца Испытательного Срока</b> в формате: <i>01.01.2000</i>"
+        )
+    
 
 @user_private_router.message(transferRequest.goals_count)
 async def cmd_goals_loop(message: Message, state: FSMContext):

@@ -154,10 +154,10 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
                 if type_quiz == True and user_info_quiz.id_telegram != None:
                     if id_quiz.Date_planned_deadline != None:
                         text_hr = f'Вы изменили дедлайн заявки номер {number_q} на <b>{date_c.strftime("%d-%m-%Y")}</b>'
-                        text_init = f"Изменен дедлайн" 
+                        text_init = f"⏰ Изменен дедлайн" 
                     elif id_quiz.Date_planned_deadline == None:
                         text_hr = f'Вы установили дедлайн заявки номер {number_q} на <b>{date_c.strftime("%d-%m-%Y")}</b>'
-                        text_init = f"Установлен дедлайн" 
+                        text_init = f"⏰ Установлен дедлайн" 
                     await callback_query.message.answer(
                         text_hr,
                     ) 
@@ -457,7 +457,7 @@ async def process_simple_calendar(callback_query: CallbackQuery, bot:Bot, callba
 
 async def send_message_time(bot:Bot, state: FSMContext):
     session = Session()
-    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()    
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Дрыгин", table.c.Name == "Андрей", table.c.Middle_name == "Владимирович").first() 
     data = await state.get_data()
     type_quiz = data.get('type_quiz')
     number_q = data.get('number_q')

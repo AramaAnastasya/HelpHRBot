@@ -62,26 +62,13 @@ async def staff_post(message: types.Message, state: FSMContext):
     due_date_list = data.get("due_date_list")
     results_list = data.get("results_list")
 
-    search = user_data.get('search')
-    name = user_data.get('search_name')
-    division = user_data.get('search_division')
-    post = user_data.get('search_post')
     if resultInitiator:
-        if search == False:
-            await message.answer(
-            "Ваша заявка на перевод\n"
-            f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
-            f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
-            f"<b>Дата конца Испытательного Срока:</b> {is_s}."  
-            )
-        else:
-            result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-            await message.answer(
-            "Ваша заявка на перевод\n"
-            f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
-            f"<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n"
-            f"<b>Дата конца Испытательного Срока:</b> {is_s}."  
-            )
+        await message.answer(
+        "Ваша заявка на перевод\n"
+        f"<b>Инициатор:</b> {resultInitiator.Surname} {resultInitiator.Name[0]}. {resultInitiator.Middle_name[0]}.\n"
+        f"<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n"
+        f"<b>Дата конца Испытательного Срока:</b> {is_s}"  
+        )
         if len(goals_list) == len(due_date_list) == len(results_list):
             #Все списки имеют одинаковую длину
             for i, goal in enumerate(goals_list):
@@ -133,7 +120,7 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
     session = Session()
     user_id = callback.from_user.id
     user_id_str = str(user_id) 
-    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Дрыгин", table.c.Name == "Андрей", table.c.Middle_name == "Владимирович").first()
     user_info = session.query(table).filter(table.c.id_telegram == user_id_str).first()
     if user_info:
         last_id = session.query(func.max(application.c.id)).scalar()
@@ -144,16 +131,12 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
         goals_list = data.get("goals_list")
         due_date_list = data.get("due_date_list")
         results_list = data.get("results_list")
-        search = data.get('search')
-        name = data.get('search_name')
-        division = data.get('search_division')
-        post = data.get('search_post')
         goals_IS = ""
         for i, goal in enumerate(goals_list):
                 due_date = due_date_list[i]
                 result = results_list[i]
                 goals_IS += f"<b>Цель {i + 1}:</b> {goal}\\n<b>Срок исполнения:</b> {due_date}\\n<b>Ожидаемый результат:</b> {result}\\n"    
-        if search == False:
+        if existing_record_HR:
             result = session.query(table).filter(table.c.id == search_bd).first()
             application_data = {
                 "ID_Initiator": user_info.id,
@@ -168,45 +151,21 @@ async def go_app(callback: types.CallbackQuery, state:FSMContext):
             )
             await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
             await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
-            text =  f"<b>Заявка на перевод</b>\n<b>Номер заявки: </b>{new_id}\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
-            text += f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}"        
-            await bot.send_message(existing_record_HR.id_telegram,
-                                   f"<b>🔔Вам поступила новая заявка</b>")
-            await bot.send_message(existing_record_HR.id_telegram,  text,
-                                parse_mode="HTML", reply_markup=send_transfer)
-        else:
-            result_Division = session.query(table_division).filter(table_division.c.id == int(division)).first()
-            resultPositiong = session.query(table_position).filter(table_position.c.Position == str(post)).first()
-            # 2. Обновление записи в таблице Applications
-            application_data = {
-                "ID_Initiator": user_info.id,
-                "ID_Employee": 1,
-                "ID_Class_application": 1,
-                'Full_name_employee': name,
-                'ID_Division': int(division),
-                'ID_Position': resultPositiong.id,
-                'End_date_IS': is_s,
-                'Goals_for_period_IS': goals_IS,
-                "Date_application": today.strftime('%Y-%m-%d'),
-            }
-            session.execute(
-                insert(application).values(application_data)
-            )
-            today = date.today()
-            await bot.send_message(callback.from_user.id, "Заявка успешно отправлена!")
-            await bot.send_message(callback.from_user.id, "Информация о сроке решения будет отправлена Вам в ближайшее время.", reply_markup=reply.main)
-            text =  f"<b>Заявка на перевод</b>\n<b>Номер заявки: </b>{new_id}\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {name}, {result_Division.Division}, {post}\n<b>Дата конца Испытательного Срока:</b> {is_s}.\n"  
+            text =  f"<b>Заявка на перевод</b>\n<b>Номер заявки: </b>{new_id}\n<b>Инициатор:</b> {user_info.Surname} {user_info.Name[0]}. {user_info.Middle_name[0]}.\n<b>Сотрудник:</b> {result.Surname} {result.Name} {result.Middle_name}, {result.Division}, {result.Position}\n<b>Дата конца Испытательного Срока:</b> {is_s}\n"  
             text += f"<b>Дата подачи заявки:</b> {today.strftime('%Y-%m-%d')}"        
             await bot.send_message(existing_record_HR.id_telegram,
                                    f"<b>🔔Вам поступила новая заявка</b>")
             await bot.send_message(existing_record_HR.id_telegram,  text,
                                 parse_mode="HTML", reply_markup=send_transfer)
             
-        session.commit()
-        await state.clear()
-        await state.update_data(unwrap = False)
+            session.commit()
+            await state.clear()
+            await state.update_data(unwrap = False)
+        else:
+            await bot.send_message(callback.from_user.id, "Ошибка в формировании заявки")
+            await bot.send_message(callback.from_user.id, "HR не авторизирован", reply_markup=reply.start_kb)
     else:
-        await bot.send_message(callback.from_user.id, "Ошибка в формировании заявки.")
+        await bot.send_message(callback.from_user.id, "Ошибка в формировании заявки")
         await bot.send_message(callback.from_user.id, "Пройдите авторизацию повторно", reply_markup=reply.start_kb)
 
 
@@ -257,8 +216,7 @@ async def unwrap_message_app(call: types.CallbackQuery, bot: Bot, state: FSMCont
     if msg_id not in message_states_app:
         # Если состояния сообщения нет, устанавливаем его в "second"
         message_states_app[msg_id] = "second"
-
-    existing_record_HR = session.query(table).filter(table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз", table.c.id_telegram == str(call.from_user.id)).first()
+    existing_record_HR = session.query(table).filter(table.c.Surname == "Дрыгин", table.c.Name == "Андрей", table.c.Middle_name == "Владимирович", table.c.id_telegram == str(call.from_user.id)).first()
     if id_info.Date_planned_deadline != None and message_states_app[msg_id] == "first" and existing_record_HR != None:
         reply_markup = send_transferAct
         date_planned = f"\n<b>Дата дедлайна:</b> {id_info.Date_planned_deadline}"
@@ -361,7 +319,7 @@ async def no_app(callback:types.CallbackQuery):
 async def is_change(callback:types.CallbackQuery, state:FSMContext):
     await callback.message.delete_reply_markup()
     await callback.message.answer(
-        "Введите исправленную <b>дату конца ИС</b>", 
+        "Введите исправленную <b>дату конца ИС</b> в формате: <i>01.01.2000</i>" 
     )
     await state.set_state(transferRequest.is_staff)
     await state.update_data(is_changed=True)

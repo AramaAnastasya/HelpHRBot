@@ -47,7 +47,7 @@ async def cmd_is(message: types.Message, state: FSMContext):
         phone_number = phone_number.replace('+', '')
         if phone_number[0] == '8':
             phone_number = '7' + phone_number[1:]
-        existing_record_HR = session.query(table).filter(table.c.Phone_number == phone_number,table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()
+        existing_record_HR = session.query(table).filter(table.c.Phone_number == phone_number,table.c.Surname == "Дрыгин", table.c.Name == "Андрей", table.c.Middle_name == "Владимирович").first()
         existing_record = session.query(table).filter(table.c.Phone_number == phone_number).first()
         # Авторизация по контакту HR
         if existing_record_HR:
@@ -78,7 +78,7 @@ async def cmd_is(message: types.Message, state: FSMContext):
         phone_number = phone_number.replace('+', '')
         if phone_number[0] == '8':
             phone_number = '7' + phone_number[1:]
-        existing_record_HR = session.query(table).filter(table.c.Phone_number == phone_number,table.c.Surname == "Минин", table.c.Name == "Вася", table.c.Middle_name == "роз").first()
+        existing_record_HR = session.query(table).filter(table.c.Phone_number == phone_number,table.c.Surname == "Дрыгин", table.c.Name == "Андрей", table.c.Middle_name == "Владимирович").first()
         if phone_number != None and existing_record_HR == None:
             # Авторизация по вводу номера пользователя
             existing_record = session.query(table).filter(table.c.Phone_number == phone_number).first()
