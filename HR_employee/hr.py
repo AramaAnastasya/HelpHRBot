@@ -1032,7 +1032,7 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
     text = (f"Статистика заявок на <b>{month_name} {now.year}</b> года\n")
     # Выберите данные из таблицы с использованием фильтрации
     count_Quest = session.query(table_question).filter(table_question.c.Date_actual_deadline != None, table_question.c.Date_actual_deadline >= start_of_month_date_only).order_by(table_question.c.Date_application).count()
-    text += f"Количеcтво вопросов: <b>{count_Quest if count_Quest != 0 else 'нет'}</b>\n"
+    
     countGener_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 4).count()
     text += f"Количеcтво заявок по общей форме: <b>{countGener_App if countGener_App != 0 else 'нет'}</b>\n"
     countTransf_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 1).count()
@@ -1040,11 +1040,22 @@ async def go_app_general(callback: types.CallbackQuery, state:FSMContext):
     countZP_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 3).count()
     text += f"Количеcтво заявок на перевод ЗП: <b>{countZP_App if countZP_App != 0 else 'нет'}</b>\n"
     countDiffFor_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.ID_Class_application == 2).count()
-    text += f"Количеcтво заявок на перевод на другой формат работы: <b>{countDiffFor_App if countDiffFor_App != 0 else 'нет'}</b>\n"
+    text += f"Количеcтво заявок на перевод на другой формат работы: <b>{countDiffFor_App if countDiffFor_App != 0 else 'нет'}</b>\n\n"
+    summApp = countGener_App + countTransf_App + countDiffFor_App + countZP_App
+    text += f'Суммарное количество заявок: <b> {summApp} </b>\n'
+    text += f"Количеcтво вопросов: <b>{count_Quest if count_Quest != 0 else '0'}</b>\n"
+    # Если АктуальныйДедлайн есть, он в этом месяце и дата АктуальногоДедлайна БОЛЬШЕ ПлановогоДедлайна
     countOverdue_App = session.query(table_application).filter(table_application.c.Date_actual_deadline != None, table_application.c.Date_actual_deadline >= start_of_month_date_only, table_application.c.Date_planned_deadline < table_application.c.Date_actual_deadline).count()
-    text += f"\nКоличество просроченных заявок: <b>{countOverdue_App if countOverdue_App != 0 else 'нет'}</b>\n"
+    # Если АктуальныйДедлайн нет, ПлановыйДедлайн принадлежит выбранному промежутку и ПлановыйДедлайн меньше Сегодня
+    countOverdue_App2 = session.query(table_application).filter(table_application.c.Date_actual_deadline == None, table_application.c.Date_planned_deadline != None, table_application.c.Date_planned_deadline < now).count()
+    countSummOverdue_App = countOverdue_App + countOverdue_App2
+    text += f"\nКоличество просроченных заявок: <b>{ countSummOverdue_App if countSummOverdue_App != 0 else 'нет'}</b> это <b>{((round(countSummOverdue_App / (countSummOverdue_App + summApp), 1)) * 100) if countSummOverdue_App + summApp > 0 else '0'}%</b> от общего количества\n"
+
+    # Если АктуальныйДедлайн нет, ПлановыйДедлайн принадлежит выбранному промежутку и ПлановыйДедлайн меньше Сегодня
+    countOverdue_Quest2 = session.query(table_question).filter(table_question.c.Date_actual_deadline == None, table_question.c.Date_planned_deadline != None, table_question.c.Date_planned_deadline < now).count() 
     countOverdue_Quest = session.query(table_question).filter(table_question.c.Date_actual_deadline != None, table_question.c.Date_actual_deadline >= start_of_month_date_only, table_question.c.Date_planned_deadline < table_question.c.Date_actual_deadline).count()
-    text += f"Количество просроченных вопросов <b> {countOverdue_Quest if countOverdue_Quest != 0 else 'нет'}</b>"
+    countSumm_Quest = countOverdue_Quest + countOverdue_Quest2
+    text += f"Количество просроченных вопросов: <b> { countSumm_Quest if countSumm_Quest != 0 else 'нет'}</b> это <b>{((round(countSumm_Quest / (count_Quest + countSumm_Quest), 1)) * 100) if count_Quest + countSumm_Quest > 0 else '0'}%</b> от общего количества"
     session.close()
 
     await callback.message.answer(text=text, reply_markup=reply.hr, parse_mode='HTML')
